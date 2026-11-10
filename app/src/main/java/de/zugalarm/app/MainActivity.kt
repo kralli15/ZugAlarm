@@ -1,6 +1,7 @@
 package de.zugalarm.app
 
 import android.os.Bundle
+import kotlinx.coroutines.launch
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -94,6 +95,23 @@ var destination by remember { mutableStateOf("Köln Hbf") }
 var searched by remember { mutableStateOf(false) }
 var monitored by remember {
     mutableStateOf(loadMonitored(context))
+    var realtimeMessages by remember {
+    mutableStateOf<List<RealtimeMessage>>(emptyList())
+}
+var realtimeFeedTime by remember {
+    mutableStateOf("")
+}
+var realtimeError by remember {
+    mutableStateOf<String?>(null)
+}
+var realtimeLoading by remember {
+    mutableStateOf(false)
+}
+var realtimeLoaded by remember {
+    mutableStateOf(false)
+}
+
+val scope = rememberCoroutineScope()
 }
 
 LaunchedEffect(monitored) {
