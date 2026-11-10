@@ -1,7 +1,6 @@
 package de.zugalarm.app
 
 import android.os.Bundle
-import kotlinx.coroutines.launch
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,14 +16,15 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
-import org.json.JSONArray
-import org.json.JSONObject
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 
 private val Background = Color(0xFF090D14)
 private val Panel = Color(0xFF151D2A)
@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
         setContent { ZugAlarmApp() }
     }
 }
+
 private fun loadMonitored(context: Context): List<Connection> {
     val prefs = context.getSharedPreferences("ZugAlarm", Context.MODE_PRIVATE)
     val json = prefs.getString("monitored", "[]") ?: "[]"
@@ -85,38 +86,33 @@ private fun saveMonitored(context: Context, connections: List<Connection>) {
         .putString("monitored", array.toString())
         .apply()
 }
+
 @Composable
 fun ZugAlarmApp() {
     val context = LocalContext.current
 
-var tab by remember { mutableIntStateOf(0) }
-var start by remember { mutableStateOf("Wuppertal Hbf") }
-var destination by remember { mutableStateOf("Köln Hbf") }
-var searched by remember { mutableStateOf(false) }
-var monitored by remember {
-    mutableStateOf(loadMonitored(context))
+    var tab by remember { mutableIntStateOf(0) }
+    var start by remember { mutableStateOf("Wuppertal Hbf") }
+    var destination by remember { mutableStateOf("Köln Hbf") }
+    var searched by remember { mutableStateOf(false) }
+
+    var monitored by remember {
+        mutableStateOf(loadMonitored(context))
+    }
+
     var realtimeMessages by remember {
-    mutableStateOf<List<RealtimeMessage>>(emptyList())
-}
-var realtimeFeedTime by remember {
-    mutableStateOf("")
-}
-var realtimeError by remember {
-    mutableStateOf<String?>(null)
-}
-var realtimeLoading by remember {
-    mutableStateOf(false)
-}
-var realtimeLoaded by remember {
-    mutableStateOf(false)
-}
+        mutableStateOf<List<RealtimeMessage>>(emptyList())
+    }
+    var realtimeFeedTime by remember { mutableStateOf("") }
+    var realtimeError by remember { mutableStateOf<String?>(null) }
+    var realtimeLoading by remember { mutableStateOf(false) }
+    var realtimeLoaded by remember { mutableStateOf(false) }
 
-val scope = rememberCoroutineScope()
-}
+    val scope = rememberCoroutineScope()
 
-LaunchedEffect(monitored) {
-    saveMonitored(context, monitored)
-}
+    LaunchedEffect(monitored) {
+        saveMonitored(context, monitored)
+    }
 
     val demoConnections = listOf(
         Connection("RE 7", start, destination, "07:04", "08:12", "1 Std. 8 Min."),
@@ -135,7 +131,8 @@ LaunchedEffect(monitored) {
             containerColor = Background,
             topBar = {
                 Column(
-                    Modifier.fillMaxWidth()
+                    Modifier
+                        .fillMaxWidth()
                         .background(Background)
                         .padding(20.dp)
                 ) {
@@ -177,7 +174,9 @@ LaunchedEffect(monitored) {
         ) { padding ->
             when (tab) {
                 0 -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
@@ -253,7 +252,9 @@ LaunchedEffect(monitored) {
                 }
 
                 1 -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -286,22 +287,136 @@ LaunchedEffect(monitored) {
                     }
                 }
 
-                else -> Column(
-                    Modifier.fillMaxSize().padding(20.dp),
+                else -> LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        "Meldungen",
-                        color = TextMain,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Card(colors = CardDefaults.cardColors(containerColor = Panel)) {
+                    item {
                         Text(
-                            "Noch keine Live-Meldungen. Sobald eine Echtzeit-Datenquelle angeschlossen ist, können hier Verspätungen, Gleisänderungen und Ausfälle erscheinen.",
-                            color = TextMuted,
-                            modifier = Modifier.padding(16.dp)
+                            "Meldungen",
+                            color = TextMain,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
                         )
+                        Text(
+                            "Öffentliche Echtzeitdaten aus Deutschland",
+                            color = TextMuted,
+                            fontSize = 13.sp
+                        )
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    realtimeLoading = true
+                                    realtimeError = null
+                                    try {
+                                        val result = GtfsRealtimeClient.load()
+                                        realtimeMessages = result.messages
+                                        realtimeFeedTime = result.feedTime
+                                        realtimeLoaded = true
+                                    } catch (e: Exception) {
+                                        realtimeError = e.message
+                                            ?: "Unbekannter Fehler"
+                                    } finally {
+                                        realtimeLoading = false
+                                    }
+                                }
+                            },
+                            enabled = !realtimeLoading,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                if (realtimeLoading)
+                                    "Meldungen werden geladen ..."
+                                else
+                                    "Meldungen aktualisieren"
+                            )
+                        }
+                    }
+
+                    if (realtimeError != null) {
+                        item {
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Panel
+                                )
+                            ) {
+                                Text(
+                                    "Fehler beim Laden:\n$realtimeError",
+                                    color = Color(0xFFFF7777),
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    if (realtimeLoaded && realtimeError == null) {
+                        item {
+                            Text(
+                                "Datenstand: $realtimeFeedTime",
+                                color = TextMuted,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        if (realtimeMessages.isEmpty()) {
+                            item {
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Panel
+                                    )
+                                ) {
+                                    Text(
+                                        "Aktuell wurden keine Verkehrsmeldungen in diesem Datenstrom gefunden. Das bedeutet nicht automatisch, dass alle Züge pünktlich fahren.",
+                                        color = TextMuted,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        items(realtimeMessages.take(30)) { message ->
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Panel
+                                ),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Column(
+                                    Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        message.title,
+                                        color = TextMain,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 17.sp
+                                    )
+                                    if (message.description.isNotBlank()) {
+                                        Text(
+                                            message.description,
+                                            color = TextMuted
+                                        )
+                                    }
+                                    Text(
+                                        "Betroffen: ${message.affected}",
+                                        color = Accent,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (!realtimeLoaded && realtimeError == null) {
+                        item {
+                            Text(
+                                "Tippe auf „Meldungen aktualisieren“, um aktuelle Verkehrsmeldungen abzurufen.",
+                                color = TextMuted
+                            )
+                        }
                     }
                 }
             }
