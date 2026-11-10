@@ -94,9 +94,10 @@ var destination by remember { mutableStateOf("Köln Hbf") }
 var searched by remember { mutableStateOf(false) }
 var monitored by remember {
     mutableStateOf(loadMonitored(context))
-    LaunchedEffect(monitored) {
+}
+
+LaunchedEffect(monitored) {
     saveMonitored(context, monitored)
-    }
 }
 
     val demoConnections = listOf(
