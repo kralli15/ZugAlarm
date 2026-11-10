@@ -1,6 +1,7 @@
 package de.zugalarm.app
 
 import android.os.Bundle
+import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -14,6 +15,9 @@ import androidx.compose.material.icons.filled.Train
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import org.json.JSONArray
+import org.json.JSONObject
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,7 +47,43 @@ class MainActivity : ComponentActivity() {
         setContent { ZugAlarmApp() }
     }
 }
+private fun loadMonitored(context: Context): List<Connection> {
+    val prefs = context.getSharedPreferences("ZugAlarm", Context.MODE_PRIVATE)
+    val json = prefs.getString("monitored", "[]") ?: "[]"
+    val array = JSONArray(json)
 
+    return List(array.length()) { i ->
+        val item = array.getJSONObject(i)
+        Connection(
+            train = item.getString("train"),
+            from = item.getString("from"),
+            to = item.getString("to"),
+            departure = item.getString("departure"),
+            arrival = item.getString("arrival"),
+            duration = item.getString("duration")
+        )
+    }
+}
+
+private fun saveMonitored(context: Context, connections: List<Connection>) {
+    val array = JSONArray()
+
+    connections.forEach { connection ->
+        val item = JSONObject()
+        item.put("train", connection.train)
+        item.put("from", connection.from)
+        item.put("to", connection.to)
+        item.put("departure", connection.departure)
+        item.put("arrival", connection.arrival)
+        item.put("duration", connection.duration)
+        array.put(item)
+    }
+
+    context.getSharedPreferences("ZugAlarm", Context.MODE_PRIVATE)
+        .edit()
+        .putString("monitored", array.toString())
+        .apply()
+}
 @Composable
 fun ZugAlarmApp() {
     var tab by remember { mutableIntStateOf(0) }
