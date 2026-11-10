@@ -86,11 +86,18 @@ private fun saveMonitored(context: Context, connections: List<Connection>) {
 }
 @Composable
 fun ZugAlarmApp() {
-    var tab by remember { mutableIntStateOf(0) }
-    var start by remember { mutableStateOf("Wuppertal Hbf") }
-    var destination by remember { mutableStateOf("Köln Hbf") }
-    var searched by remember { mutableStateOf(false) }
-    var monitored by remember { mutableStateOf(listOf<Connection>()) }
+    val context = LocalContext.current
+
+var tab by remember { mutableIntStateOf(0) }
+var start by remember { mutableStateOf("Wuppertal Hbf") }
+var destination by remember { mutableStateOf("Köln Hbf") }
+var searched by remember { mutableStateOf(false) }
+var monitored by remember {
+    mutableStateOf(loadMonitored(context))
+    LaunchedEffect(monitored) {
+    saveMonitored(context, monitored)
+    }
+}
 
     val demoConnections = listOf(
         Connection("RE 7", start, destination, "07:04", "08:12", "1 Std. 8 Min."),
