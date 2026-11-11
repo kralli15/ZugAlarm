@@ -52,12 +52,14 @@ object TransitousClient {
                 .addQueryParameter("type", "STOP")
                 .build()
 
-            val array = JSONArray(get(url.toString()))
+            val response = JSONObject(get(url.toString()))
+            val array = response.optJSONArray("places")
+                ?: response.optJSONArray("results")
+                ?: JSONArray()
 
             (0 until array.length()).mapNotNull { index ->
                 val item = array.optJSONObject(index)
                     ?: return@mapNotNull null
-
                 val id = item.optString("id")
                 val name = item.optString("name")
 
@@ -80,7 +82,6 @@ object TransitousClient {
         dateTime: String?,
         arriveBy: Boolean
     ): List<TransitConnection> = withContext(Dispatchers.IO) {
-
         val builder = HttpUrl.Builder()
             .scheme("https")
             .host("api.transitous.org")
@@ -103,18 +104,14 @@ object TransitousClient {
         (0 until itineraries.length()).mapNotNull { index ->
             val journey = itineraries.optJSONObject(index)
                 ?: return@mapNotNull null
-
             val legs = journey.optJSONArray("legs")
                 ?: JSONArray()
 
-            if (legs.length() == 0) {
-                return@mapNotNull null
-            }
+            if (legs.length() == 0) return@mapNotNull null
 
             val first = legs.optJSONObject(0) ?: JSONObject()
             val last = legs.optJSONObject(legs.length() - 1)
                 ?: JSONObject()
-
             val firstPlace = first.optJSONObject("from")
                 ?: JSONObject()
             val lastPlace = last.optJSONObject("to")
@@ -126,7 +123,7 @@ object TransitousClient {
             val durationSeconds = journey.optLong("duration", 0L)
             val durationText = if (durationSeconds > 0L) {
                 val minutes = durationSeconds / 60L
-                "\${minutes / 60} Std. \${minutes % 60} Min."
+                "${minutes / 60} Std. ${minutes % 60} Min."
             } else {
                 "Dauer nicht angegeben"
             }
@@ -134,8 +131,8 @@ object TransitousClient {
             val modes = (0 until legs.length()).mapNotNull { legIndex ->
                 val leg = legs.optJSONObject(legIndex)
                     ?: return@mapNotNull null
-
                 val mode = leg.optString("mode")
+
                 if (mode == "WALK" || mode.isBlank()) {
                     null
                 } else {
@@ -151,10 +148,8 @@ object TransitousClient {
             TransitConnection(
                 label = modes.joinToString(" · ")
                     .ifBlank { "Öffentliche Verbindung" },
-                from = firstPlace.optString("name")
-                    .ifBlank { from.name },
-                to = lastPlace.optString("name")
-                    .ifBlank { to.name },
+                from = firstPlace.optString("name").ifBlank { from.name },
+                to = lastPlace.optString("name").ifBlank { to.name },
                 departure = departure,
                 arrival = arrival,
                 duration = durationText,
@@ -173,7 +168,7 @@ object TransitousClient {
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 throw IllegalStateException(
-                    "Transitous meldet HTTP \${response.code}. Bitte später erneut versuchen."
+                    "Transitous meldet HTTP ${response.code}. Bitte später erneut versuchen."
                 )
             }
 
