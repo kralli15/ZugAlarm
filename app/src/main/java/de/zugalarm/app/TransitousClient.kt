@@ -52,14 +52,12 @@ object TransitousClient {
                 .addQueryParameter("type", "STOP")
                 .build()
 
-            val response = JSONObject(get(url.toString()))
-            val array = response.optJSONArray("places")
-                ?: response.optJSONArray("results")
-                ?: JSONArray()
+            val array = JSONArray(get(url.toString()))
 
             (0 until array.length()).mapNotNull { index ->
                 val item = array.optJSONObject(index)
                     ?: return@mapNotNull null
+
                 val id = item.optString("id")
                 val name = item.optString("name")
 
@@ -82,6 +80,7 @@ object TransitousClient {
         dateTime: String?,
         arriveBy: Boolean
     ): List<TransitConnection> = withContext(Dispatchers.IO) {
+
         val builder = HttpUrl.Builder()
             .scheme("https")
             .host("api.transitous.org")
@@ -104,6 +103,7 @@ object TransitousClient {
         (0 until itineraries.length()).mapNotNull { index ->
             val journey = itineraries.optJSONObject(index)
                 ?: return@mapNotNull null
+
             val legs = journey.optJSONArray("legs")
                 ?: JSONArray()
 
@@ -112,6 +112,7 @@ object TransitousClient {
             val first = legs.optJSONObject(0) ?: JSONObject()
             val last = legs.optJSONObject(legs.length() - 1)
                 ?: JSONObject()
+
             val firstPlace = first.optJSONObject("from")
                 ?: JSONObject()
             val lastPlace = last.optJSONObject("to")
@@ -131,6 +132,7 @@ object TransitousClient {
             val modes = (0 until legs.length()).mapNotNull { legIndex ->
                 val leg = legs.optJSONObject(legIndex)
                     ?: return@mapNotNull null
+
                 val mode = leg.optString("mode")
 
                 if (mode == "WALK" || mode.isBlank()) {
@@ -199,3 +201,4 @@ object TransitousClient {
         }
     }
 }
+
