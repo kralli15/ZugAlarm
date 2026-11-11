@@ -1,4 +1,3 @@
-
 package de.zugalarm.app
 
 import kotlinx.coroutines.Dispatchers
@@ -10,6 +9,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
 import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -32,6 +32,7 @@ data class TransitConnection(
 )
 
 object TransitousClient {
+
     private const val USER_AGENT =
         "ZugAlarm/0.3.0 (https://github.com/kralli15/ZugAlarm)"
 
@@ -43,6 +44,7 @@ object TransitousClient {
 
     suspend fun searchPlaces(text: String): List<TransitPlace> =
         withContext(Dispatchers.IO) {
+
             val url = HttpUrl.Builder()
                 .scheme("https")
                 .host("api.transitous.org")
@@ -97,31 +99,49 @@ object TransitousClient {
         }
 
         val root = JSONObject(get(builder.build().toString()))
+
         val itineraries = root.optJSONArray("itineraries")
             ?: JSONArray()
 
         (0 until itineraries.length()).mapNotNull { index ->
+
             val journey = itineraries.optJSONObject(index)
                 ?: return@mapNotNull null
 
             val legs = journey.optJSONArray("legs")
                 ?: JSONArray()
 
-            if (legs.length() == 0) return@mapNotNull null
+            if (legs.length() == 0) {
+                return@mapNotNull null
+            }
 
             val first = legs.optJSONObject(0) ?: JSONObject()
             val last = legs.optJSONObject(legs.length() - 1)
-                ?: JSONObject()
+
+            if (last == null) {
+                return@mapNotNull null
+            }
 
             val firstPlace = first.optJSONObject("from")
                 ?: JSONObject()
+
             val lastPlace = last.optJSONObject("to")
                 ?: JSONObject()
 
-            val departure = formatTime(first.optString("departure"))
-            val arrival = formatTime(last.optString("arrival"))
+            // MOTIS liefert die Zeiten der gesamten Verbindung
+            // direkt im Itinerary-Objekt.
+            val departure = formatTime(
+                journey.optString("startTime")
+                    .ifBlank { first.optString("startTime") }
+            )
+
+            val arrival = formatTime(
+                journey.optString("endTime")
+                    .ifBlank { last.optString("endTime") }
+            )
 
             val durationSeconds = journey.optLong("duration", 0L)
+
             val durationText = if (durationSeconds > 0L) {
                 val minutes = durationSeconds / 60L
                 "${minutes / 60} Std. ${minutes % 60} Min."
@@ -129,38 +149,53 @@ object TransitousClient {
                 "Dauer nicht angegeben"
             }
 
-            val modes = (0 until legs.length()).mapNotNull { legIndex ->
+            // Jede einzelne Fahrt bleibt in ihrer Reihenfolge erhalten.
+            val transitLegs = (0 until legs.length()).mapNotNull { legIndex ->
+
                 val leg = legs.optJSONObject(legIndex)
                     ?: return@mapNotNull null
 
                 val mode = leg.optString("mode")
 
-                if (mode == "WALK" || mode.isBlank()) {
-                    null
-                } else {
-                    leg.optJSONObject("route")
-                        ?.optString("displayName")
-                        ?.takeIf { it.isNotBlank() }
-                        ?: leg.optString("displayName")
-                            .takeIf { it.isNotBlank() }
-                        ?: mode
+                if (mode.equals("WALK", true) ||
+                    mode.equals("FOOT", true) ||
+                    mode.isBlank()
+                ) {
+                    return@mapNotNull null
                 }
-            }.distinct()
+
+                val route = leg.optJSONObject("route")
+
+                val line = leg.optString("routeShortName")
+                    .takeIf { it.isNotBlank() }
+                    ?: route?.optString("displayName")
+                        ?.takeIf { it.isNotBlank() }
+                    ?: leg.optString("displayName")
+                        .takeIf { it.isNotBlank() }
+                    ?: mode
+
+                line
+            }
+
+            val label = transitLegs.joinToString(" → ")
+                .ifBlank { "Öffentliche Verbindung" }
 
             TransitConnection(
-                label = modes.joinToString(" · ")
-                    .ifBlank { "Öffentliche Verbindung" },
-                from = firstPlace.optString("name").ifBlank { from.name },
-                to = lastPlace.optString("name").ifBlank { to.name },
+                label = label,
+                from = firstPlace.optString("name")
+                    .ifBlank { from.name },
+                to = lastPlace.optString("name")
+                    .ifBlank { to.name },
                 departure = departure,
                 arrival = arrival,
                 duration = durationText,
-                detail = modes.joinToString(" · ")
+                detail = label
             )
         }
     }
 
     private fun get(url: String): String {
+
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", USER_AGENT)
@@ -168,6 +203,7 @@ object TransitousClient {
             .build()
 
         client.newCall(request).execute().use { response ->
+
             if (!response.isSuccessful) {
                 throw IllegalStateException(
                     "Transitous meldet HTTP ${response.code}. Bitte später erneut versuchen."
@@ -182,23 +218,34 @@ object TransitousClient {
     }
 
     private fun formatTime(value: String): String {
-        if (value.isBlank()) return "?"
+
+        if (value.isBlank() || value == "null") {
+            return "?"
+        }
 
         return try {
-            OffsetDateTime.parse(value).format(
-                DateTimeFormatter.ofPattern("HH:mm", Locale.GERMANY)
-            )
+            OffsetDateTime.parse(value)
+                .atZoneSameInstant(ZoneId.systemDefault())
+                .format(
+                    DateTimeFormatter.ofPattern(
+                        "HH:mm",
+                        Locale.GERMANY
+                    )
+                )
         } catch (_: Exception) {
+
             try {
                 Instant.parse(value)
-                    .atZone(java.time.ZoneId.systemDefault())
+                    .atZone(ZoneId.systemDefault())
                     .format(
-                        DateTimeFormatter.ofPattern("HH:mm", Locale.GERMANY)
+                        DateTimeFormatter.ofPattern(
+                            "HH:mm",
+                            Locale.GERMANY
+                        )
                     )
             } catch (_: Exception) {
-                value
+                "?"
             }
         }
     }
 }
-
