@@ -1,4 +1,3 @@
-
 package de.zugalarm.app
 
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +20,8 @@ data class TransitPlace(
     val latitude: Double,
     val longitude: Double
 )
-        data class TransitLeg(
+
+data class TransitLeg(
     val line: String,
     val mode: String,
     val from: String,
@@ -73,11 +73,14 @@ object TransitousClient {
                 .build()
 
             val array = JSONArray(get(url.toString()))
+
             (0 until array.length()).mapNotNull { index ->
                 val item = array.optJSONObject(index)
                     ?: return@mapNotNull null
+
                 val id = item.optString("id")
                 val name = item.optString("name")
+
                 if (id.isBlank() || name.isBlank()) {
                     return@mapNotNull null
                 }
@@ -121,8 +124,12 @@ object TransitousClient {
         (0 until itineraries.length()).mapNotNull { index ->
             val journey = itineraries.optJSONObject(index)
                 ?: return@mapNotNull null
+
             val rawLegs = journey.optJSONArray("legs") ?: JSONArray()
-            if (rawLegs.length() == 0) return@mapNotNull null
+
+            if (rawLegs.length() == 0) {
+                return@mapNotNull null
+            }
 
             val first = rawLegs.optJSONObject(0) ?: JSONObject()
             val last = rawLegs.optJSONObject(rawLegs.length() - 1)
@@ -134,11 +141,16 @@ object TransitousClient {
             val legs = (0 until rawLegs.length()).mapNotNull { legIndex ->
                 val leg = rawLegs.optJSONObject(legIndex)
                     ?: return@mapNotNull null
+
                 val mode = leg.optString("mode")
-                if (mode.equals("WALK", true) ||
+
+                if (
+                    mode.equals("WALK", true) ||
                     mode.equals("FOOT", true) ||
                     mode.isBlank()
-                ) return@mapNotNull null
+                ) {
+                    return@mapNotNull null
+                }
 
                 val route = leg.optJSONObject("route") ?: JSONObject()
                 val fromStop = leg.optJSONObject("from") ?: JSONObject()
@@ -151,53 +163,64 @@ object TransitousClient {
                     ?: leg.optString("routeShortName")
                         .takeIf { it.isNotBlank() }
                     ?: mode
-                        
+
                 TransitLeg(
-    line = line,
-    mode = mode,
-    from = fromStop.optString("name"),
-    to = toStop.optString("name"),
+                    line = line,
+                    mode = mode,
+                    from = fromStop.optString("name"),
+                    to = toStop.optString("name"),
 
-    departure = formatTime(
-        leg.optString("startTime")
-            .ifBlank { fromStop.optString("departure") }
-    ),
-    arrival = formatTime(
-        leg.optString("endTime")
-            .ifBlank { toStop.optString("arrival") }
-    ),
+                    departure = formatTime(
+                        leg.optString("startTime")
+                            .ifBlank { fromStop.optString("departure") }
+                    ),
 
-    scheduledDeparture = formatTime(
-        leg.optString("scheduledStartTime")
-            .ifBlank { fromStop.optString("scheduledDeparture") }
-    ),
-    scheduledArrival = formatTime(
-        leg.optString("scheduledEndTime")
-            .ifBlank { toStop.optString("scheduledArrival") }
-    ),
+                    arrival = formatTime(
+                        leg.optString("endTime")
+                            .ifBlank { toStop.optString("arrival") }
+                    ),
 
-    departurePlatform = platformName(fromStop),
-    arrivalPlatform = platformName(toStop),
+                    scheduledDeparture = formatTime(
+                        leg.optString("scheduledStartTime")
+                            .ifBlank {
+                                fromStop.optString("scheduledDeparture")
+                            }
+                    ),
 
-    realtimeAvailable = leg.optBoolean("realTime", false),
-    cancelled = leg.optBoolean("cancelled", false) ||
-        leg.optBoolean("tripCancelled", false),
+                    scheduledArrival = formatTime(
+                        leg.optString("scheduledEndTime")
+                            .ifBlank {
+                                toStop.optString("scheduledArrival")
+                            }
+                    ),
 
-    tripId = leg.optString("tripId"),
-    routeId = leg.optString("routeId"),
-    headsign = leg.optString("headsign")
-)
-        
+                    departurePlatform = platformName(fromStop),
+                    arrivalPlatform = platformName(toStop),
 
-            if (legs.isEmpty()) return@mapNotNull null
+                    realtimeAvailable = leg.optBoolean("realTime", false),
 
-            if (onlyLocalTransport &&
+                    cancelled = leg.optBoolean("cancelled", false) ||
+                        leg.optBoolean("tripCancelled", false),
+
+                    tripId = leg.optString("tripId"),
+                    routeId = leg.optString("routeId"),
+                    headsign = leg.optString("headsign")
+                )
+            }
+
+            if (legs.isEmpty()) {
+                return@mapNotNull null
+            }
+
+            if (
+                onlyLocalTransport &&
                 legs.any { isKnownLongDistance(it.mode) }
             ) {
                 return@mapNotNull null
             }
 
             val durationSeconds = journey.optLong("duration", 0L)
+
             val durationText = if (durationSeconds > 0L) {
                 val minutes = durationSeconds / 60L
                 "${minutes / 60} Std. ${minutes % 60} Min."
@@ -226,18 +249,20 @@ object TransitousClient {
             )
         }
     }
-        private fun platformName(stop: JSONObject): String {
-    val currentTrack = stop.optString("track")
-        .takeIf { it.isNotBlank() && it != "null" }
 
-    val scheduledTrack = stop.optString("scheduledTrack")
-        .takeIf { it.isNotBlank() && it != "null" }
+    private fun platformName(stop: JSONObject): String {
+        val currentTrack = stop.optString("track")
+            .takeIf { it.isNotBlank() && it != "null" }
 
-    return currentTrack ?: scheduledTrack ?: ""
+        val scheduledTrack = stop.optString("scheduledTrack")
+            .takeIf { it.isNotBlank() && it != "null" }
+
+        return currentTrack ?: scheduledTrack ?: ""
     }
 
     private fun isKnownLongDistance(mode: String): Boolean {
         val normalized = mode.uppercase(Locale.ROOT)
+
         return normalized in setOf(
             "LONG_DISTANCE",
             "HIGH_SPEED_RAIL",
@@ -260,6 +285,7 @@ object TransitousClient {
                     "Transitous meldet HTTP ${response.code}. Bitte später erneut versuchen."
                 )
             }
+
             return response.body?.string()
                 ?: throw IllegalStateException(
                     "Die Datenquelle hat keine Antwort geliefert."
@@ -268,7 +294,9 @@ object TransitousClient {
     }
 
     private fun formatTime(value: String): String {
-        if (value.isBlank() || value == "null") return "?"
+        if (value.isBlank() || value == "null") {
+            return "?"
+        }
 
         return try {
             OffsetDateTime.parse(value)
