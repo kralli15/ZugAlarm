@@ -187,7 +187,7 @@ object TransitousClient {
     routeId = leg.optString("routeId"),
     headsign = leg.optString("headsign")
 )
-            }
+        
 
             if (legs.isEmpty()) return@mapNotNull null
 
