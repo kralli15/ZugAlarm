@@ -55,90 +55,126 @@ class MainActivity : ComponentActivity() {
         setContent { ZugAlarmApp() }
     }
 }
+private fun JSONObject.stringValue(
+    key: String,
+    fallback: String = ""
+): String {
+    val value = optString(key, fallback)
+    return if (value == "null") fallback else value
+}
+
+private fun JSONObject.booleanValue(key: String): Boolean {
+    return optBoolean(key, false)
+}
 
 private fun loadMonitored(context: Context): List<Connection> {
-    val prefs = context.getSharedPreferences("ZugAlarm", Context.MODE_PRIVATE)
-    val array = JSONArray(prefs.getString("monitored", "[]") ?: "[]")
+    val preferences = context.getSharedPreferences(
+        "ZugAlarm",
+        Context.MODE_PRIVATE
+    )
 
-    return List(array.length()) { i ->
-        val item = array.getJSONObject(i)
-        val legArray = item.optJSONArray("legs") ?: JSONArray()
+    val savedJson = preferences.getString("monitored", "[]") ?: "[]"
 
-        val legs = (0 until legArray.length()).map { index ->
-            val leg = legArray.getJSONObject(index)
+    return runCatching {
+        val savedConnections = JSONArray(savedJson)
 
-            TransitLeg(
-                line = leg.optString("line"),
-                mode = leg.optString("mode"),
-                from = leg.optString("from"),
-                to = leg.optString("to"),
-                departure = leg.optString("departure"),
-                arrival = leg.optString("arrival"),
-                scheduledDeparture = leg.optString("scheduledDeparture", "?"),
-                scheduledArrival = leg.optString("scheduledArrival", "?"),
-                departurePlatform = leg.optString("departurePlatform"),
-                arrivalPlatform = leg.optString("arrivalPlatform"),
-                realtimeAvailable = leg.optBoolean("realtimeAvailable"),
-                cancelled = leg.optBoolean("cancelled"),
-                tripId = leg.optString("tripId"),
-                routeId = leg.optString("routeId"),
-                headsign = leg.optString("headsign")
+        (0 until savedConnections.length()).mapNotNull { index ->
+            val item = savedConnections.optJSONObject(index)
+                ?: return@mapNotNull null
+
+            val savedLegs = item.optJSONArray("legs") ?: JSONArray()
+
+            val legs = (0 until savedLegs.length()).mapNotNull { legIndex ->
+                val leg = savedLegs.optJSONObject(legIndex)
+                    ?: return@mapNotNull null
+
+                TransitLeg(
+                    line = leg.stringValue("line"),
+                    mode = leg.stringValue("mode"),
+                    from = leg.stringValue("from"),
+                    to = leg.stringValue("to"),
+                    departure = leg.stringValue("departure"),
+                    arrival = leg.stringValue("arrival"),
+                    scheduledDeparture = leg.stringValue(
+                        "scheduledDeparture",
+                        "?"
+                    ),
+                    scheduledArrival = leg.stringValue(
+                        "scheduledArrival",
+                        "?"
+                    ),
+                    departurePlatform = leg.stringValue("departurePlatform"),
+                    arrivalPlatform = leg.stringValue("arrivalPlatform"),
+                    realtimeAvailable = leg.booleanValue("realtimeAvailable"),
+                    cancelled = leg.booleanValue("cancelled"),
+                    tripId = leg.stringValue("tripId"),
+                    routeId = leg.stringValue("routeId"),
+                    headsign = leg.stringValue("headsign")
+                )
+            }
+
+            Connection(
+                train = item.stringValue("train"),
+                from = item.stringValue("from"),
+                to = item.stringValue("to"),
+                departure = item.stringValue("departure"),
+                arrival = item.stringValue("arrival"),
+                duration = item.stringValue("duration"),
+                legs = legs
             )
         }
-
-        Connection(
-            train = item.getString("train"),
-            from = item.getString("from"),
-            to = item.getString("to"),
-            departure = item.getString("departure"),
-            arrival = item.getString("arrival"),
-            duration = item.getString("duration"),
-            legs = legs
-        )
+    }.getOrElse {
+        emptyList()
     }
 }
 
-private fun saveMonitored(context: Context, connections: List<Connection>) {
-    val array = JSONArray()
+private fun saveMonitored(
+    context: Context,
+    connections: List<Connection>
+) {
+    val savedConnections = JSONArray()
 
     connections.forEach { connection ->
-        val item = JSONObject()
-        item.put("train", connection.train)
-        item.put("from", connection.from)
-        item.put("to", connection.to)
-        item.put("departure", connection.departure)
-        item.put("arrival", connection.arrival)
-        item.put("duration", connection.duration)
-
-        val legArray = JSONArray()
+        val savedLegs = JSONArray()
 
         connection.legs.forEach { leg ->
-            val legJson = JSONObject()
-            legJson.put("line", leg.line)
-            legJson.put("mode", leg.mode)
-            legJson.put("from", leg.from)
-            legJson.put("to", leg.to)
-            legJson.put("departure", leg.departure)
-            legJson.put("arrival", leg.arrival)
-            legJson.put("scheduledDeparture", leg.scheduledDeparture)
-            legJson.put("scheduledArrival", leg.scheduledArrival)
-            legJson.put("departurePlatform", leg.departurePlatform)
-            legJson.put("arrivalPlatform", leg.arrivalPlatform)
-            legJson.put("realtimeAvailable", leg.realtimeAvailable)
-            legJson.put("cancelled", leg.cancelled)
-            legJson.put("tripId", leg.tripId)
-            legJson.put("routeId", leg.routeId)
-            legJson.put("headsign", leg.headsign)
-            legArray.put(legJson)
+            savedLegs.put(
+                JSONObject().apply {
+                    put("line", leg.line)
+                    put("mode", leg.mode)
+                    put("from", leg.from)
+                    put("to", leg.to)
+                    put("departure", leg.departure)
+                    put("arrival", leg.arrival)
+                    put("scheduledDeparture", leg.scheduledDeparture)
+                    put("scheduledArrival", leg.scheduledArrival)
+                    put("departurePlatform", leg.departurePlatform)
+                    put("arrivalPlatform", leg.arrivalPlatform)
+                    put("realtimeAvailable", leg.realtimeAvailable)
+                    put("cancelled", leg.cancelled)
+                    put("tripId", leg.tripId)
+                    put("routeId", leg.routeId)
+                    put("headsign", leg.headsign)
+                }
+            )
         }
 
-        item.put("legs", legArray)
-        array.put(item)
+        savedConnections.put(
+            JSONObject().apply {
+                put("train", connection.train)
+                put("from", connection.from)
+                put("to", connection.to)
+                put("departure", connection.departure)
+                put("arrival", connection.arrival)
+                put("duration", connection.duration)
+                put("legs", savedLegs)
+            }
+        )
     }
 
     context.getSharedPreferences("ZugAlarm", Context.MODE_PRIVATE)
         .edit()
-        .putString("monitored", array.toString())
+        .putString("monitored", savedConnections.toString())
         .apply()
 }
 
