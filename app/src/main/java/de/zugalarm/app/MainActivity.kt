@@ -73,6 +73,8 @@ private fun loadMonitored(context: Context): List<Connection> {
                 to = leg.optString("to"),
                 departure = leg.optString("departure"),
                 arrival = leg.optString("arrival"),
+                scheduledDeparture = leg.optString("scheduledDeparture"),
+scheduledArrival = leg.optString("scheduledArrival"),
                 departurePlatform = leg.optString("departurePlatform"),
                 arrivalPlatform = leg.optString("arrivalPlatform"),
                 realtimeAvailable = leg.optBoolean("realtimeAvailable"),
@@ -116,6 +118,8 @@ private fun saveMonitored(context: Context, connections: List<Connection>) {
             legJson.put("to", leg.to)
             legJson.put("departure", leg.departure)
             legJson.put("arrival", leg.arrival)
+            legJson.put("scheduledDeparture", leg.scheduledDeparture)
+legJson.put("scheduledArrival", leg.scheduledArrival)
             legJson.put("departurePlatform", leg.departurePlatform)
             legJson.put("arrivalPlatform", leg.arrivalPlatform)
             legJson.put("realtimeAvailable", leg.realtimeAvailable)
