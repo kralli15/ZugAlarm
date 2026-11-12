@@ -466,15 +466,22 @@ private fun SearchScreen(
                                 ).atZone(ZoneId.systemDefault())
                                     .toOffsetDateTime().toString()
 
-                                onConnections(
-                                    TransitousClient.searchConnections(
-                                        selectedFrom,
-                                        selectedTo,
-                                        dateTime,
-                                        arriveBy
-                                    )
-                                )
-                                onSearchInfo("Verbindungen gefunden: ${connections.size}")
+                                val found = TransitousClient.searchConnections(
+    selectedFrom,
+    selectedTo,
+    dateTime,
+    arriveBy
+)
+
+onConnections(found)
+
+onSearchInfo(
+    if (found.isEmpty()) {
+        "Keine Verbindungen gefunden."
+    } else {
+        "${found.size} Verbindungen gefunden."
+    }
+)
                             } catch (e: Exception) {
                                 onSearchError(e.message ?: "Verbindungssuche fehlgeschlagen.")
                             } finally {
