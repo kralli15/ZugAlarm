@@ -21,7 +21,7 @@ data class TransitPlace(
     val latitude: Double,
     val longitude: Double
 )
-    data class TransitLeg(
+        data class TransitLeg(
     val line: String,
     val mode: String,
     val from: String,
