@@ -151,29 +151,43 @@ object TransitousClient {
                     ?: leg.optString("routeShortName")
                         .takeIf { it.isNotBlank() }
                     ?: mode
-
+                        
                 TransitLeg(
-                    line = line,
-                    mode = mode,
-                    from = fromStop.optString("name"),
-                    to = toStop.optString("name"),
-                    departure = formatTime(
-                        leg.optString("startTime")
-                            .ifBlank { fromStop.optString("departure") }
-                    ),
-                    arrival = formatTime(
-                        leg.optString("endTime")
-                            .ifBlank { toStop.optString("arrival") }
-                    ),
-                    departurePlatform = platformName(fromStop),
-                    arrivalPlatform = platformName(toStop),
-                    realtimeAvailable = leg.optBoolean("realTime", false),
-                    cancelled = leg.optBoolean("cancelled", false) ||
-                        leg.optBoolean("tripCancelled", false),
-                    tripId = leg.optString("tripId"),
-                    routeId = leg.optString("routeId"),
-                    headsign = leg.optString("headsign")
-                )
+    line = line,
+    mode = mode,
+    from = fromStop.optString("name"),
+    to = toStop.optString("name"),
+
+    departure = formatTime(
+        leg.optString("startTime")
+            .ifBlank { fromStop.optString("departure") }
+    ),
+    arrival = formatTime(
+        leg.optString("endTime")
+            .ifBlank { toStop.optString("arrival") }
+    ),
+
+    scheduledDeparture = formatTime(
+        leg.optString("scheduledStartTime")
+            .ifBlank { fromStop.optString("scheduledDeparture") }
+    ),
+    scheduledArrival = formatTime(
+        leg.optString("scheduledEndTime")
+            .ifBlank { toStop.optString("scheduledArrival") }
+    ),
+
+    departurePlatform = platformName(fromStop),
+    arrivalPlatform = platformName(toStop),
+
+    realtimeAvailable = leg.optBoolean("realTime", false),
+    cancelled = leg.optBoolean("cancelled", false) ||
+        leg.optBoolean("tripCancelled", false),
+
+    tripId = leg.optString("tripId"),
+    routeId = leg.optString("routeId"),
+    headsign = leg.optString("headsign")
+    )
+)
             }
 
             if (legs.isEmpty()) return@mapNotNull null
