@@ -21,14 +21,15 @@ data class TransitPlace(
     val latitude: Double,
     val longitude: Double
 )
-
-data class TransitLeg(
+    data class TransitLeg(
     val line: String,
     val mode: String,
     val from: String,
     val to: String,
     val departure: String,
     val arrival: String,
+    val scheduledDeparture: String,
+    val scheduledArrival: String,
     val departurePlatform: String,
     val arrivalPlatform: String,
     val realtimeAvailable: Boolean,
