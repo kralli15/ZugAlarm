@@ -186,7 +186,6 @@ object TransitousClient {
     tripId = leg.optString("tripId"),
     routeId = leg.optString("routeId"),
     headsign = leg.optString("headsign")
-    )
 )
             }
 
