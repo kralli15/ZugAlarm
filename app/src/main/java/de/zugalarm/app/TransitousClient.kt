@@ -227,13 +227,14 @@ object TransitousClient {
             )
         }
     }
+        private fun platformName(stop: JSONObject): String {
+    val currentTrack = stop.optString("track")
+        .takeIf { it.isNotBlank() && it != "null" }
 
-    private fun platformName(stop: JSONObject): String {
-        return stop.optString("platform")
-            .takeIf { it.isNotBlank() && it != "null" }
-            ?: stop.optString("platformName")
-                .takeIf { it.isNotBlank() && it != "null" }
-            ?: ""
+    val scheduledTrack = stop.optString("scheduledTrack")
+        .takeIf { it.isNotBlank() && it != "null" }
+
+    return currentTrack ?: scheduledTrack ?: ""
     }
 
     private fun isKnownLongDistance(mode: String): Boolean {
