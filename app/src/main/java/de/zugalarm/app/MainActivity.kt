@@ -1,4 +1,3 @@
-
 package de.zugalarm.app
 
 import android.os.Bundle
@@ -46,7 +45,8 @@ data class Connection(
     val to: String,
     val departure: String,
     val arrival: String,
-    val duration: String
+    val duration: String,
+    val legs: List<TransitLeg> = emptyList()
 )
 
 class MainActivity : ComponentActivity() {
@@ -58,18 +58,39 @@ class MainActivity : ComponentActivity() {
 
 private fun loadMonitored(context: Context): List<Connection> {
     val prefs = context.getSharedPreferences("ZugAlarm", Context.MODE_PRIVATE)
-    val json = prefs.getString("monitored", "[]") ?: "[]"
-    val array = JSONArray(json)
+    val array = JSONArray(prefs.getString("monitored", "[]") ?: "[]")
 
     return List(array.length()) { i ->
         val item = array.getJSONObject(i)
+        val legArray = item.optJSONArray("legs") ?: JSONArray()
+
+        val legs = (0 until legArray.length()).map { index ->
+            val leg = legArray.getJSONObject(index)
+            TransitLeg(
+                line = leg.optString("line"),
+                mode = leg.optString("mode"),
+                from = leg.optString("from"),
+                to = leg.optString("to"),
+                departure = leg.optString("departure"),
+                arrival = leg.optString("arrival"),
+                departurePlatform = leg.optString("departurePlatform"),
+                arrivalPlatform = leg.optString("arrivalPlatform"),
+                realtimeAvailable = leg.optBoolean("realtimeAvailable"),
+                cancelled = leg.optBoolean("cancelled"),
+                tripId = leg.optString("tripId"),
+                routeId = leg.optString("routeId"),
+                headsign = leg.optString("headsign")
+            )
+        }
+
         Connection(
             train = item.getString("train"),
             from = item.getString("from"),
             to = item.getString("to"),
             departure = item.getString("departure"),
             arrival = item.getString("arrival"),
-            duration = item.getString("duration")
+            duration = item.getString("duration"),
+            legs = legs
         )
     }
 }
@@ -85,6 +106,27 @@ private fun saveMonitored(context: Context, connections: List<Connection>) {
         item.put("departure", connection.departure)
         item.put("arrival", connection.arrival)
         item.put("duration", connection.duration)
+
+        val legArray = JSONArray()
+        connection.legs.forEach { leg ->
+            val legJson = JSONObject()
+            legJson.put("line", leg.line)
+            legJson.put("mode", leg.mode)
+            legJson.put("from", leg.from)
+            legJson.put("to", leg.to)
+            legJson.put("departure", leg.departure)
+            legJson.put("arrival", leg.arrival)
+            legJson.put("departurePlatform", leg.departurePlatform)
+            legJson.put("arrivalPlatform", leg.arrivalPlatform)
+            legJson.put("realtimeAvailable", leg.realtimeAvailable)
+            legJson.put("cancelled", leg.cancelled)
+            legJson.put("tripId", leg.tripId)
+            legJson.put("routeId", leg.routeId)
+            legJson.put("headsign", leg.headsign)
+            legArray.put(legJson)
+        }
+
+        item.put("legs", legArray)
         array.put(item)
     }
 
@@ -101,19 +143,15 @@ fun ZugAlarmApp() {
     val scope = rememberCoroutineScope()
 
     var tab by remember { mutableIntStateOf(0) }
-
     var start by remember { mutableStateOf("Wuppertal") }
     var destination by remember { mutableStateOf("Köln") }
 
     var fromPlaces by remember { mutableStateOf<List<TransitPlace>>(emptyList()) }
     var toPlaces by remember { mutableStateOf<List<TransitPlace>>(emptyList()) }
-
     var selectedFrom by remember { mutableStateOf<TransitPlace?>(null) }
     var selectedTo by remember { mutableStateOf<TransitPlace?>(null) }
 
-    var date by remember {
-        mutableStateOf(LocalDate.now().toString())
-    }
+    var date by remember { mutableStateOf(LocalDate.now().toString()) }
     var time by remember {
         mutableStateOf(
             LocalTime.now().plusMinutes(5)
@@ -122,23 +160,15 @@ fun ZugAlarmApp() {
     }
 
     var arriveBy by remember { mutableStateOf(false) }
-
-    var connections by remember {
-        mutableStateOf<List<TransitConnection>>(emptyList())
-    }
-
-    var monitored by remember {
-        mutableStateOf(loadMonitored(context))
-    }
+    var connections by remember { mutableStateOf<List<TransitConnection>>(emptyList()) }
+    var monitored by remember { mutableStateOf(loadMonitored(context)) }
 
     var searchLoading by remember { mutableStateOf(false) }
     var connectionLoading by remember { mutableStateOf(false) }
     var searchError by remember { mutableStateOf<String?>(null) }
     var searchInfo by remember { mutableStateOf("") }
 
-    var realtimeMessages by remember {
-        mutableStateOf<List<RealtimeMessage>>(emptyList())
-    }
+    var realtimeMessages by remember { mutableStateOf<List<RealtimeMessage>>(emptyList()) }
     var realtimeFeedTime by remember { mutableStateOf("") }
     var realtimeError by remember { mutableStateOf<String?>(null) }
     var realtimeLoading by remember { mutableStateOf(false) }
@@ -194,476 +224,412 @@ fun ZugAlarmApp() {
                     NavigationBarItem(
                         selected = tab == 2,
                         onClick = { tab = 2 },
-                        icon = {
-                            Icon(Icons.Default.NotificationsActive, null)
-                        },
+                        icon = { Icon(Icons.Default.NotificationsActive, null) },
                         label = { Text("Meldungen") }
                     )
                 }
             }
         ) { padding ->
-
             when (tab) {
-                0 -> LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        Text(
-                            "Verbindung suchen",
-                            color = TextMain,
-                            fontSize = 21.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        OutlinedTextField(
-                            value = start,
-                            onValueChange = {
-                                start = it
-                                selectedFrom = null
-                                fromPlaces = emptyList()
-                                connections = emptyList()
-                            },
-                            label = { Text("Startbahnhof oder Haltestelle") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-
-                        OutlinedTextField(
-                            value = destination,
-                            onValueChange = {
-                                destination = it
-                                selectedTo = null
-                                toPlaces = emptyList()
-                                connections = emptyList()
-                            },
-                            label = { Text("Zielbahnhof oder Haltestelle") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-
-                        Spacer(Modifier.height(8.dp))
-
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    searchLoading = true
-                                    searchError = null
-                                    searchInfo = ""
-                                    connections = emptyList()
-                                    selectedFrom = null
-                                    selectedTo = null
-
-                                    try {
-                                        fromPlaces =
-                                            TransitousClient.searchPlaces(start)
-                                        toPlaces =
-                                            TransitousClient.searchPlaces(destination)
-
-                                        if (fromPlaces.isEmpty()) {
-                                            searchInfo =
-                                                "Für den Start wurde keine Haltestelle gefunden."
-                                        } else if (toPlaces.isEmpty()) {
-                                            searchInfo =
-                                                "Für das Ziel wurde keine Haltestelle gefunden."
-                                        } else {
-                                            searchInfo =
-                                                "Bitte wähle die passende Haltestelle für Start und Ziel."
-                                        }
-                                    } catch (e: Exception) {
-                                        searchError =
-                                            e.message ?: "Fehler bei der Haltestellensuche."
-                                    } finally {
-                                        searchLoading = false
-                                    }
-                                }
-                            },
-                            enabled = !searchLoading &&
-                                start.isNotBlank() &&
-                                destination.isNotBlank(),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                if (searchLoading)
-                                    "Haltestellen werden gesucht ..."
-                                else
-                                    "Haltestellen suchen"
-                            )
+                0 -> SearchScreen(
+                    padding = padding,
+                    start = start,
+                    destination = destination,
+                    onStartChange = {
+                        start = it
+                        selectedFrom = null
+                        fromPlaces = emptyList()
+                        connections = emptyList()
+                    },
+                    onDestinationChange = {
+                        destination = it
+                        selectedTo = null
+                        toPlaces = emptyList()
+                        connections = emptyList()
+                    },
+                    fromPlaces = fromPlaces,
+                    toPlaces = toPlaces,
+                    selectedFrom = selectedFrom,
+                    selectedTo = selectedTo,
+                    onFromPlaces = { fromPlaces = it },
+                    onToPlaces = { toPlaces = it },
+                    onSelectFrom = { selectedFrom = it },
+                    onSelectTo = { selectedTo = it },
+                    date = date,
+                    onDateChange = { date = it },
+                    time = time,
+                    onTimeChange = { time = it },
+                    arriveBy = arriveBy,
+                    onArriveByChange = { arriveBy = it },
+                    connections = connections,
+                    onConnections = { connections = it },
+                    searchLoading = searchLoading,
+                    onSearchLoading = { searchLoading = it },
+                    connectionLoading = connectionLoading,
+                    onConnectionLoading = { connectionLoading = it },
+                    searchError = searchError,
+                    onSearchError = { searchError = it },
+                    searchInfo = searchInfo,
+                    onSearchInfo = { searchInfo = it },
+                    monitored = monitored,
+                    onMonitor = { connection ->
+                        if (!monitored.contains(connection)) {
+                            monitored = monitored + connection
                         }
-                    }
+                    },
+                    scope = scope,
+                    uriHandler = uriHandler
+                )
 
-                    if (fromPlaces.isNotEmpty()) {
-                        item {
-                            Text(
-                                "Start auswählen",
-                                color = TextMain,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                1 -> MyTripsScreen(
+                    padding = padding,
+                    monitored = monitored,
+                    onRemove = { monitored = monitored - it }
+                )
 
-                        items(fromPlaces.take(8)) { place ->
-                            PlaceCard(
-                                place = place,
-                                selected = selectedFrom?.id == place.id,
-                                onClick = {
-                                    selectedFrom = place
-                                }
-                            )
-                        }
-                    }
-
-                    if (toPlaces.isNotEmpty()) {
-                        item {
-                            Text(
-                                "Ziel auswählen",
-                                color = TextMain,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        items(toPlaces.take(8)) { place ->
-                            PlaceCard(
-                                place = place,
-                                selected = selectedTo?.id == place.id,
-                                onClick = {
-                                    selectedTo = place
-                                }
-                            )
-                        }
-                    }
-
-                    if (selectedFrom != null && selectedTo != null) {
-                        item {
-                            Text(
-                                "Reisedatum und Uhrzeit",
-                                color = TextMain,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            OutlinedTextField(
-                                value = date,
-                                onValueChange = { date = it },
-                                label = { Text("Datum (JJJJ-MM-TT)") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-
-                            OutlinedTextField(
-                                value = time,
-                                onValueChange = { time = it },
-                                label = { Text("Uhrzeit (HH:MM)") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                FilterChip(
-                                    selected = !arriveBy,
-                                    onClick = { arriveBy = false },
-                                    label = { Text("Abfahrt") }
-                                )
-                                FilterChip(
-                                    selected = arriveBy,
-                                    onClick = { arriveBy = true },
-                                    label = { Text("Ankunft") }
-                                )
-                            }
-
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        connectionLoading = true
-                                        searchError = null
-                                        searchInfo = ""
-                                        connections = emptyList()
-
-                                        try {
-                                            val dateTime =
-                                                LocalDateTime.of(
-                                                    LocalDate.parse(date),
-                                                    LocalTime.parse(time)
-                                                )
-                                                    .atZone(ZoneId.systemDefault())
-                                                    .toOffsetDateTime()
-                                                    .toString()
-
-                                            connections =
-                                                TransitousClient.searchConnections(
-                                                    selectedFrom!!,
-                                                    selectedTo!!,
-                                                    dateTime,
-                                                    arriveBy
-                                                )
-
-                                            searchInfo =
-                                                if (connections.isEmpty()) {
-                                                    "Keine Verbindungen gefunden. Das bedeutet nicht automatisch, dass die Strecke gesperrt ist."
-                                                } else {
-                                                    "${connections.size} Verbindungen gefunden."
-                                                }
-                                        } catch (e: Exception) {
-                                            searchError =
-                                                e.message ?: "Fehler bei der Verbindungssuche. Bitte Datum und Uhrzeit prüfen."
-                                        } finally {
-                                            connectionLoading = false
-                                        }
-                                    }
-                                },
-                                enabled = !connectionLoading,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    if (connectionLoading)
-                                        "Verbindungen werden gesucht ..."
-                                    else
-                                        "Echte Verbindungen suchen"
-                                )
+                else -> MessagesScreen(
+                    padding = padding,
+                    messages = realtimeMessages,
+                    feedTime = realtimeFeedTime,
+                    error = realtimeError,
+                    loading = realtimeLoading,
+                    loaded = realtimeLoaded,
+                    onLoad = {
+                        scope.launch {
+                            realtimeLoading = true
+                            realtimeError = null
+                            try {
+                                val result = GtfsRealtimeClient.load()
+                                realtimeMessages = result.messages
+                                realtimeFeedTime = result.feedTime
+                                realtimeLoaded = true
+                            } catch (e: Exception) {
+                                realtimeError = e.message ?: "Unbekannter Fehler"
+                            } finally {
+                                realtimeLoading = false
                             }
                         }
                     }
+                )
+            }
+        }
+    }
+}
 
-                    if (searchError != null) {
-                        item {
-                            Text(
-                                searchError!!,
-                                color = Color(0xFFFF7777)
-                            )
+@Composable
+private fun SearchScreen(
+    padding: PaddingValues,
+    start: String,
+    destination: String,
+    onStartChange: (String) -> Unit,
+    onDestinationChange: (String) -> Unit,
+    fromPlaces: List<TransitPlace>,
+    toPlaces: List<TransitPlace>,
+    selectedFrom: TransitPlace?,
+    selectedTo: TransitPlace?,
+    onFromPlaces: (List<TransitPlace>) -> Unit,
+    onToPlaces: (List<TransitPlace>) -> Unit,
+    onSelectFrom: (TransitPlace) -> Unit,
+    onSelectTo: (TransitPlace) -> Unit,
+    date: String,
+    onDateChange: (String) -> Unit,
+    time: String,
+    onTimeChange: (String) -> Unit,
+    arriveBy: Boolean,
+    onArriveByChange: (Boolean) -> Unit,
+    connections: List<TransitConnection>,
+    onConnections: (List<TransitConnection>) -> Unit,
+    searchLoading: Boolean,
+    onSearchLoading: (Boolean) -> Unit,
+    connectionLoading: Boolean,
+    onConnectionLoading: (Boolean) -> Unit,
+    searchError: String?,
+    onSearchError: (String?) -> Unit,
+    searchInfo: String,
+    onSearchInfo: (String) -> Unit,
+    monitored: List<Connection>,
+    onMonitor: (Connection) -> Unit,
+    scope: kotlinx.coroutines.CoroutineScope,
+    uriHandler: androidx.compose.ui.platform.UriHandler
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(padding),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text("Verbindung suchen", color = TextMain, fontSize = 21.sp, fontWeight = FontWeight.Bold)
+
+            OutlinedTextField(
+                value = start,
+                onValueChange = onStartChange,
+                label = { Text("Startbahnhof oder Haltestelle") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            OutlinedTextField(
+                value = destination,
+                onValueChange = onDestinationChange,
+                label = { Text("Zielbahnhof oder Haltestelle") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        onSearchLoading(true)
+                        onSearchError(null)
+                        onSearchInfo("")
+                        onConnections(emptyList())
+                        try {
+                            onFromPlaces(TransitousClient.searchPlaces(start))
+                            onToPlaces(TransitousClient.searchPlaces(destination))
+                            onSearchInfo("Bitte wähle die passenden Haltestellen aus.")
+                        } catch (e: Exception) {
+                            onSearchError(e.message ?: "Haltestellensuche fehlgeschlagen.")
+                        } finally {
+                            onSearchLoading(false)
                         }
                     }
+                },
+                enabled = !searchLoading && start.isNotBlank() && destination.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (searchLoading) "Haltestellen werden gesucht ..." else "Haltestellen suchen")
+            }
+        }
 
-                    if (searchInfo.isNotBlank()) {
-                        item {
-                            Text(
-                                searchInfo,
-                                color = TextMuted
-                            )
-                        }
-                    }
+        if (fromPlaces.isNotEmpty()) {
+            item {
+                Text("Start auswählen", color = TextMain, fontWeight = FontWeight.Bold)
+            }
+            items(fromPlaces.take(8)) { place ->
+                PlaceCard(place, selectedFrom?.id == place.id) { onSelectFrom(place) }
+            }
+        }
 
-                    items(connections) { result ->
-                        val connection = Connection(
-                            train = result.label,
-                            from = result.from,
-                            to = result.to,
-                            departure = result.departure,
-                            arrival = result.arrival,
-                            duration = result.duration
-                        )
+        if (toPlaces.isNotEmpty()) {
+            item {
+                Text("Ziel auswählen", color = TextMain, fontWeight = FontWeight.Bold)
+            }
+            items(toPlaces.take(8)) { place ->
+                PlaceCard(place, selectedTo?.id == place.id) { onSelectTo(place) }
+            }
+        }
 
-                        ConnectionCard(
-                            connection = connection,
-                            buttonText = if (monitored.contains(connection))
-                                "Wird überwacht"
-                            else
-                                "Überwachen",
-                            onClick = {
-                                if (!monitored.contains(connection)) {
-                                    monitored = monitored + connection
-                                }
-                            }
-                        )
-                    }
+        if (selectedFrom != null && selectedTo != null) {
+            item {
+                Text("Reisedatum und Uhrzeit", color = TextMain, fontWeight = FontWeight.Bold)
 
-                    item {
-                        Text(
-                            "Fahrplandaten: Transitous. Die Verfügbarkeit von Echtzeitdaten hängt vom jeweiligen Verkehrsunternehmen ab.",
-                            color = TextMuted,
-                            fontSize = 11.sp
-                        )
+                OutlinedTextField(
+                    value = date,
+                    onValueChange = onDateChange,
+                    label = { Text("Datum (JJJJ-MM-TT)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
 
-                        Text(
-                            "Datenquellen und Hinweise ansehen",
-                            color = Accent,
-                            fontSize = 12.sp,
-                            modifier = Modifier.clickable {
-                                uriHandler.openUri("https://transitous.org/sources/")
-                            }
-                        )
+                OutlinedTextField(
+                    value = time,
+                    onValueChange = onTimeChange,
+                    label = { Text("Uhrzeit (HH:MM)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
 
-                        Text(
-                            "Kartendaten © OpenStreetMap contributors",
-                            color = TextMuted,
-                            fontSize = 11.sp
-                        )
-                    }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = !arriveBy,
+                        onClick = { onArriveByChange(false) },
+                        label = { Text("Abfahrt") }
+                    )
+                    FilterChip(
+                        selected = arriveBy,
+                        onClick = { onArriveByChange(true) },
+                        label = { Text("Ankunft") }
+                    )
                 }
 
-                1 -> LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        Text(
-                            "Meine Reisen",
-                            color = TextMain,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "Deine ausgewählten Verbindungen",
-                            color = TextMuted
-                        )
-                    }
+                Button(
+                    onClick = {
+                        scope.launch {
+                            onConnectionLoading(true)
+                            onSearchError(null)
+                            onSearchInfo("")
+                            onConnections(emptyList())
+                            try {
+                                val dateTime = LocalDateTime.of(
+                                    LocalDate.parse(date),
+                                    LocalTime.parse(time)
+                                ).atZone(ZoneId.systemDefault())
+                                    .toOffsetDateTime().toString()
 
-                    if (monitored.isEmpty()) {
-                        item {
-                            Text(
-                                "Noch keine Verbindung ausgewählt. Suche zuerst eine Verbindung und tippe auf Überwachen.",
-                                color = TextMuted
-                            )
-                        }
-                    }
-
-                    items(monitored) { connection ->
-                        ConnectionCard(
-                            connection = connection,
-                            buttonText = "Überwachung beenden",
-                            onClick = {
-                                monitored = monitored - connection
+                                onConnections(
+                                    TransitousClient.searchConnections(
+                                        selectedFrom,
+                                        selectedTo,
+                                        dateTime,
+                                        arriveBy
+                                    )
+                                )
+                                onSearchInfo("Verbindungen gefunden: ${connections.size}")
+                            } catch (e: Exception) {
+                                onSearchError(e.message ?: "Verbindungssuche fehlgeschlagen.")
+                            } finally {
+                                onConnectionLoading(false)
                             }
-                        )
+                        }
+                    },
+                    enabled = !connectionLoading,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (connectionLoading) "Verbindungen werden gesucht ..." else "Echte Verbindungen suchen")
+                }
+            }
+        }
+
+        if (searchError != null) {
+            item { Text(searchError, color = Color(0xFFFF7777)) }
+        }
+
+        if (searchInfo.isNotBlank()) {
+            item { Text(searchInfo, color = TextMuted) }
+        }
+
+        items(connections) { result ->
+            val connection = Connection(
+                train = result.label,
+                from = result.from,
+                to = result.to,
+                departure = result.departure,
+                arrival = result.arrival,
+                duration = result.duration,
+                legs = result.legs
+            )
+            ConnectionCard(
+                connection = connection,
+                buttonText = if (monitored.contains(connection)) "Wird überwacht" else "Überwachen",
+                onClick = { onMonitor(connection) }
+            )
+        }
+
+        item {
+            Text(
+                "Fahrplandaten: Transitous. Echtzeitdaten hängen vom jeweiligen Verkehrsunternehmen ab.",
+                color = TextMuted,
+                fontSize = 11.sp
+            )
+            Text(
+                "Datenquellen und Hinweise ansehen",
+                color = Accent,
+                modifier = Modifier.clickable {
+                    uriHandler.openUri("https://transitous.org/sources/")
+                }
+            )
+            Text("Kartendaten © OpenStreetMap contributors", color = TextMuted, fontSize = 11.sp)
+        }
+    }
+}
+
+@Composable
+private fun MyTripsScreen(
+    padding: PaddingValues,
+    monitored: List<Connection>,
+    onRemove: (Connection) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(padding),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text("Meine Reisen", color = TextMain, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Deine ausgewählten Verbindungen", color = TextMuted)
+        }
+
+        if (monitored.isEmpty()) {
+            item {
+                Text(
+                    "Noch keine Verbindung ausgewählt. Suche eine Verbindung und tippe auf Überwachen.",
+                    color = TextMuted
+                )
+            }
+        }
+
+        items(monitored) { connection ->
+            ConnectionCard(
+                connection = connection,
+                buttonText = "Überwachung beenden",
+                onClick = { onRemove(connection) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun MessagesScreen(
+    padding: PaddingValues,
+    messages: List<RealtimeMessage>,
+    feedTime: String,
+    error: String?,
+    loading: Boolean,
+    loaded: Boolean,
+    onLoad: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(padding),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text("Meldungen", color = TextMain, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Öffentliche Echtzeitdaten aus Deutschland", color = TextMuted)
+
+            Button(onClick = onLoad, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
+                Text(if (loading) "Meldungen werden geladen ..." else "Meldungen aktualisieren")
+            }
+        }
+
+        if (error != null) {
+            item { Text("Fehler beim Laden:\n$error", color = Color(0xFFFF7777)) }
+        }
+
+        if (loaded && error == null) {
+            item { Text("Datenstand: $feedTime", color = TextMuted, fontSize = 12.sp) }
+
+            if (messages.isEmpty()) {
+                item {
+                    Text(
+                        "Aktuell wurden keine Verkehrsmeldungen gefunden. Das bedeutet nicht automatisch, dass alle Züge pünktlich fahren.",
+                        color = TextMuted
+                    )
+                }
+            }
+
+            items(messages.take(30)) { message ->
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Panel),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Column(
+                        Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(message.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        if (message.description.isNotBlank()) {
+                            Text(message.description, color = TextMuted)
+                        }
+                        Text("Betroffen: ${message.affected}", color = Accent, fontSize = 12.sp)
                     }
                 }
+            }
+        }
 
-                else -> LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        Text(
-                            "Meldungen",
-                            color = TextMain,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Text(
-                            "Öffentliche Echtzeitdaten aus Deutschland",
-                            color = TextMuted,
-                            fontSize = 13.sp
-                        )
-
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    realtimeLoading = true
-                                    realtimeError = null
-
-                                    try {
-                                        val result = GtfsRealtimeClient.load()
-                                        realtimeMessages = result.messages
-                                        realtimeFeedTime = result.feedTime
-                                        realtimeLoaded = true
-                                    } catch (e: Exception) {
-                                        realtimeError =
-                                            e.message ?: "Unbekannter Fehler"
-                                    } finally {
-                                        realtimeLoading = false
-                                    }
-                                }
-                            },
-                            enabled = !realtimeLoading,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                if (realtimeLoading)
-                                    "Meldungen werden geladen ..."
-                                else
-                                    "Meldungen aktualisieren"
-                            )
-                        }
-                    }
-
-                    if (realtimeError != null) {
-                        item {
-                            Text(
-                                "Fehler beim Laden:\n$realtimeError",
-                                color = Color(0xFFFF7777)
-                            )
-                        }
-                    }
-
-                    if (realtimeLoaded && realtimeError == null) {
-                        item {
-                            Text(
-                                "Datenstand: $realtimeFeedTime",
-                                color = TextMuted,
-                                fontSize = 12.sp
-                            )
-                        }
-
-                        if (realtimeMessages.isEmpty()) {
-                            item {
-                                Card(
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = Panel
-                                    )
-                                ) {
-                                    Text(
-                                        "Aktuell wurden keine Verkehrsmeldungen in diesem Datenstrom gefunden. Das bedeutet nicht automatisch, dass alle Züge pünktlich fahren.",
-                                        color = TextMuted,
-                                        modifier = Modifier.padding(16.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        items(realtimeMessages.take(30)) { message ->
-                            Card(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Panel
-                                ),
-                                shape = RoundedCornerShape(14.dp)
-                            ) {
-                                Column(
-                                    Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text(
-                                        message.title,
-                                        color = TextMain,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 17.sp
-                                    )
-
-                                    if (message.description.isNotBlank()) {
-                                        Text(
-                                            message.description,
-                                            color = TextMuted
-                                        )
-                                    }
-
-                                    Text(
-                                        "Betroffen: ${message.affected}",
-                                        color = Accent,
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    if (!realtimeLoaded && realtimeError == null) {
-                        item {
-                            Text(
-                                "Tippe auf „Meldungen aktualisieren“, um aktuelle Verkehrsmeldungen abzurufen.",
-                                color = TextMuted
-                            )
-                        }
-                    }
-                }
+        if (!loaded && error == null) {
+            item {
+                Text("Tippe auf Meldungen aktualisieren, um aktuelle Verkehrsmeldungen abzurufen.", color = TextMuted)
             }
         }
     }
@@ -676,20 +642,14 @@ fun PlaceCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         colors = CardDefaults.cardColors(
             containerColor = if (selected) Color(0xFF203D59) else Panel
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(Modifier.padding(14.dp)) {
-            Text(
-                place.name,
-                color = TextMain,
-                fontWeight = FontWeight.Bold
-            )
+            Text(place.name, color = TextMain, fontWeight = FontWeight.Bold)
             Text(
                 if (selected) "Ausgewählt" else "Zum Auswählen antippen",
                 color = if (selected) Accent else TextMuted,
@@ -714,63 +674,94 @@ fun ConnectionCard(
             Modifier.padding(15.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
-            Text(
-                connection.train,
-                color = Accent,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text(connection.train, color = Accent, fontSize = 17.sp, fontWeight = FontWeight.Bold)
 
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        connection.departure,
-                        color = TextMain,
-                        fontSize = 22.sp
-                    )
-                    Text(
-                        connection.from,
-                        color = TextMuted,
-                        fontSize = 12.sp
-                    )
+            if (connection.legs.isNotEmpty()) {
+                Text(
+                    "Reisekette mit ${connection.legs.size} Fahrtabschnitten",
+                    color = TextMuted,
+                    fontSize = 12.sp
+                )
+
+                connection.legs.forEachIndexed { index, leg ->
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF202B3A)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Text("${index + 1}. ${leg.line}", color = Accent, fontWeight = FontWeight.Bold)
+
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(leg.departure, color = TextMain, fontSize = 19.sp)
+                                    Text(leg.from, color = TextMuted, fontSize = 12.sp)
+                                    Text(
+                                        if (leg.departurePlatform.isBlank()) "Gleis nicht angegeben"
+                                        else "Abfahrt Gleis ${leg.departurePlatform}",
+                                        color = TextMuted,
+                                        fontSize = 11.sp
+                                    )
+                                }
+
+                                Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                                    Text(leg.arrival, color = TextMain, fontSize = 19.sp)
+                                    Text(leg.to, color = TextMuted, fontSize = 12.sp)
+                                    Text(
+                                        if (leg.arrivalPlatform.isBlank()) "Gleis nicht angegeben"
+                                        else "Ankunft Gleis ${leg.arrivalPlatform}",
+                                        color = TextMuted,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+
+                            Text(
+                                when {
+                                    leg.cancelled -> "Ausfall gemeldet"
+                                    leg.realtimeAvailable -> "Echtzeitdaten vorhanden"
+                                    else -> "Keine Echtzeitdaten"
+                                },
+                                color = when {
+                                    leg.cancelled -> Color(0xFFFF7777)
+                                    leg.realtimeAvailable -> Color(0xFF75D69C)
+                                    else -> TextMuted
+                                },
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
                 }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        connection.duration,
-                        color = TextMuted,
-                        fontSize = 11.sp
-                    )
-                    Text(
-                        "→",
-                        color = Accent,
-                        fontSize = 22.sp
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        connection.arrival,
-                        color = TextMain,
-                        fontSize = 22.sp
-                    )
-                    Text(
-                        connection.to,
-                        color = TextMuted,
-                        fontSize = 12.sp
-                    )
+            } else {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(connection.departure, color = TextMain, fontSize = 22.sp)
+                        Text(connection.from, color = TextMuted, fontSize = 12.sp)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(connection.duration, color = TextMuted, fontSize = 11.sp)
+                        Text("→", color = Accent, fontSize = 22.sp)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(connection.arrival, color = TextMain, fontSize = 22.sp)
+                        Text(connection.to, color = TextMuted, fontSize = 12.sp)
+                    }
                 }
             }
 
-            Button(
-                onClick = onClick,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
                 Text(buttonText)
             }
         }
     }
 }
+
