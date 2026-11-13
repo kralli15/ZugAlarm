@@ -1,4 +1,3 @@
-
 package de.zugalarm.app
 
 import android.os.Bundle
@@ -21,11 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.TextRange
 
 private val Background = Color(0xFF080D16)
 private val Panel = Color(0xFF111B2A)
@@ -38,58 +37,94 @@ private val Bad = Color(0xFFFF7777)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { ZugAlarmApp() }
+        setContent {
+            ZugAlarmApp()
+        }
     }
 }
 
 @Composable
 fun ZugAlarmApp() {
-    var fromText by remember { mutableStateOf(TextFieldValue("")) }
-    var toText by remember { mutableStateOf(TextFieldValue("")) }
-    var fromPlace by remember { mutableStateOf<TransitPlace?>(null) }
-    var toPlace by remember { mutableStateOf<TransitPlace?>(null) }
-    var fromSuggestions by remember { mutableStateOf(emptyList<TransitPlace>()) }
-    var toSuggestions by remember { mutableStateOf(emptyList<TransitPlace>()) }
-    var connections by remember { mutableStateOf(emptyList<TransitConnection>()) }
-    var selected by remember { mutableStateOf<TransitConnection?>(null) }
-    var searching by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var fromText by remember {
+        mutableStateOf(TextFieldValue(""))
+    }
+    var toText by remember {
+        mutableStateOf(TextFieldValue(""))
+    }
+
+    var fromPlace by remember {
+        mutableStateOf<TransitPlace?>(null)
+    }
+    var toPlace by remember {
+        mutableStateOf<TransitPlace?>(null)
+    }
+
+    var fromSuggestions by remember {
+        mutableStateOf(emptyList<TransitPlace>())
+    }
+    var toSuggestions by remember {
+        mutableStateOf(emptyList<TransitPlace>())
+    }
+
+    var connections by remember {
+        mutableStateOf(emptyList<TransitConnection>())
+    }
+    var selected by remember {
+        mutableStateOf<TransitConnection?>(null)
+    }
+
+    var searching by remember {
+        mutableStateOf(false)
+    }
+    var error by remember {
+        mutableStateOf<String?>(null)
+    }
 
     LaunchedEffect(fromText.text, fromPlace) {
-    if (fromPlace != null) {
-        fromSuggestions = emptyList()
-    } else if (fromText.text.trim().length < 2) {
-        fromSuggestions = emptyList()
-    } else {
-        delay(350)
-        fromSuggestions = try {
-            rankStations(
-                TransitousClient.searchPlaces(fromText.text.trim()),
-                fromText.text.trim()
-            ).take(8)
-        } catch (_: Exception) {
-            emptyList()
-        }
-    }
-}
+        if (fromPlace != null) {
+            fromSuggestions = emptyList()
+        } else {
+            val query = fromText.text.trim()
 
-LaunchedEffect(toText.text, toPlace) {
-    if (toPlace != null) {
-        toSuggestions = emptyList()
-    } else if (toText.text.trim().length < 2) {
-        toSuggestions = emptyList()
-    } else {
-        delay(350)
-        toSuggestions = try {
-            rankStations(
-                TransitousClient.searchPlaces(toText.text.trim()),
-                toText.text.trim()
-            ).take(8)
-        } catch (_: Exception) {
-            emptyList()
+            if (query.length < 2) {
+                fromSuggestions = emptyList()
+            } else {
+                delay(400)
+
+                fromSuggestions = try {
+                    rankStations(
+                        TransitousClient.searchPlaces(query),
+                        query
+                    ).take(8)
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
         }
     }
-}
+
+    LaunchedEffect(toText.text, toPlace) {
+        if (toPlace != null) {
+            toSuggestions = emptyList()
+        } else {
+            val query = toText.text.trim()
+
+            if (query.length < 2) {
+                toSuggestions = emptyList()
+            } else {
+                delay(400)
+
+                toSuggestions = try {
+                    rankStations(
+                        TransitousClient.searchPlaces(query),
+                        query
+                    ).take(8)
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
+        }
+    }
 
     LaunchedEffect(searching) {
         if (searching) {
@@ -100,19 +135,21 @@ LaunchedEffect(toText.text, toPlace) {
                 if (start == null || end == null) {
                     error = "Bitte Start und Ziel auswählen."
                 } else {
-                    connections = TransitousClient.searchConnections(
-                        from = start,
-                        to = end,
-                        dateTime = null,
-                        arriveBy = false
-                    )
+                    connections =
+                        TransitousClient.searchConnections(
+                            from = start,
+                            to = end,
+                            dateTime = null,
+                            arriveBy = false
+                        )
 
                     if (connections.isEmpty()) {
                         error = "Keine Verbindung gefunden."
                     }
                 }
             } catch (e: Exception) {
-                error = e.message ?: "Verbindungssuche fehlgeschlagen."
+                error = e.message
+                    ?: "Verbindungssuche fehlgeschlagen."
             } finally {
                 searching = false
             }
@@ -138,7 +175,10 @@ LaunchedEffect(toText.text, toPlace) {
                     Modifier
                         .fillMaxWidth()
                         .background(Background)
-                        .padding(horizontal = 18.dp, vertical = 16.dp)
+                        .padding(
+                            horizontal = 18.dp,
+                            vertical = 16.dp
+                        )
                 ) {
                     Text(
                         "ZugAlarm",
@@ -146,6 +186,7 @@ LaunchedEffect(toText.text, toPlace) {
                         fontSize = 25.sp,
                         fontWeight = FontWeight.Bold
                     )
+
                     Text(
                         "Dein persönlicher Streckenagent",
                         color = TextMuted,
@@ -154,6 +195,7 @@ LaunchedEffect(toText.text, toPlace) {
                 }
             }
         ) { padding ->
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -164,15 +206,20 @@ LaunchedEffect(toText.text, toPlace) {
                     top = 8.dp,
                     bottom = 28.dp
                 ),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement =
+                    Arrangement.spacedBy(12.dp)
             ) {
                 item {
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .background(Panel, RoundedCornerShape(16.dp))
+                            .background(
+                                Panel,
+                                RoundedCornerShape(16.dp)
+                            )
                             .padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(9.dp)
+                        verticalArrangement =
+                            Arrangement.spacedBy(9.dp)
                     ) {
                         Text(
                             "VERBINDUNG SUCHEN",
@@ -190,48 +237,36 @@ LaunchedEffect(toText.text, toPlace) {
                                 fromPlace = null
                             },
                             onSelect = {
+                                val name = cleanStation(it.name)
+
                                 fromPlace = it
-                                fromText = cleanStation(it.name)
+                                fromText = TextFieldValue(
+                                    text = name,
+                                    selection = TextRange(name.length)
+                                )
                                 fromSuggestions = emptyList()
                             }
                         )
-StationInput(
-    label = "Von",
-    value = fromText,
-    suggestions = fromSuggestions,
-    onValueChange = {
-        fromText = it
-        fromPlace = null
-    },
-    onSelect = {
-        val name = cleanStation(it.name)
-        fromPlace = it
-        fromText = TextFieldValue(
-            text = name,
-            selection = TextRange(name.length)
-        )
-        fromSuggestions = emptyList()
-    }
-)
 
-StationInput(
-    label = "Nach",
-    value = toText,
-    suggestions = toSuggestions,
-    onValueChange = {
-        toText = it
-        toPlace = null
-    },
-    onSelect = {
-        val name = cleanStation(it.name)
-        toPlace = it
-        toText = TextFieldValue(
-            text = name,
-            selection = TextRange(name.length)
-        )
-        toSuggestions = emptyList()
-    }
-)
+                        StationInput(
+                            label = "Nach",
+                            value = toText,
+                            suggestions = toSuggestions,
+                            onValueChange = {
+                                toText = it
+                                toPlace = null
+                            },
+                            onSelect = {
+                                val name = cleanStation(it.name)
+
+                                toPlace = it
+                                toText = TextFieldValue(
+                                    text = name,
+                                    selection = TextRange(name.length)
+                                )
+                                toSuggestions = emptyList()
+                            }
+                        )
 
                         Button(
                             onClick = {
@@ -250,7 +285,9 @@ StationInput(
                                 Icons.Default.Search,
                                 contentDescription = null
                             )
+
                             Spacer(Modifier.width(8.dp))
+
                             Text(
                                 if (searching) "Suche läuft …"
                                 else "Verbindungen suchen"
@@ -278,7 +315,10 @@ StationInput(
                     }
                 }
 
-                if (connections.isNotEmpty() && selected == null) {
+                if (
+                    connections.isNotEmpty() &&
+                    selected == null
+                ) {
                     item {
                         Text(
                             "GEFUNDENE VERBINDUNGEN",
@@ -299,8 +339,10 @@ StationInput(
                     item {
                         Row(
                             Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            horizontalArrangement =
+                                Arrangement.SpaceBetween,
+                            verticalAlignment =
+                                Alignment.CenterVertically
                         ) {
                             Text(
                                 "DEINE REISE",
@@ -310,7 +352,9 @@ StationInput(
                             )
 
                             TextButton(
-                                onClick = { selected = null }
+                                onClick = {
+                                    selected = null
+                                }
                             ) {
                                 Text("Zurück")
                             }
@@ -361,7 +405,6 @@ StationInput(
         }
     }
 }
-
 @Composable
 private fun StationInput(
     label: String,
@@ -369,8 +412,10 @@ private fun StationInput(
     suggestions: List<TransitPlace>,
     onValueChange: (TextFieldValue) -> Unit,
     onSelect: (TransitPlace) -> Unit
-){
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -399,7 +444,9 @@ private fun StationInput(
 
         suggestions.forEach { place ->
             TextButton(
-                onClick = { onSelect(place) },
+                onClick = {
+                    onSelect(place)
+                },
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(
                     horizontal = 10.dp,
@@ -438,12 +485,14 @@ private fun ConnectionCard(
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
+
             Text(
                 "${connection.departure} → ${connection.arrival}   ${connection.duration}",
                 color = Accent,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp
             )
+
             Text(
                 "${connection.legs.size} Teilstrecken",
                 color = TextMuted,
@@ -472,6 +521,7 @@ private fun TimelineLeg(leg: TransitLeg) {
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
+
             Text(
                 if (leg.cancelled) "FÄLLT AUS"
                 else if (leg.realtimeAvailable) "ECHTZEIT"
@@ -514,6 +564,7 @@ private fun TimelineLeg(leg: TransitLeg) {
 
         if (leg.headsign.isNotBlank()) {
             Spacer(Modifier.height(8.dp))
+
             Text(
                 "Zielanzeige: ${leg.headsign}",
                 color = TextMuted,
@@ -554,6 +605,7 @@ private fun StopTimelineRow(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
+
             Text(
                 label,
                 color = TextMuted,
@@ -571,6 +623,7 @@ private fun StopTimelineRow(
                     color = TextMuted,
                     fontSize = 12.sp
                 )
+
                 Text(
                     actual.ifBlank { "?" },
                     color = if (planned != actual) Bad else Good,
@@ -578,6 +631,7 @@ private fun StopTimelineRow(
                     fontWeight = FontWeight.Bold
                 )
             }
+
             Text(
                 "Plan       Echtzeit",
                 color = TextMuted,
@@ -609,8 +663,9 @@ private fun StopTimelineRow(
     }
 }
 
-private fun cleanStation(name: String): String =
-    name.replace("Hbf.", "Hbf").trim()
+private fun cleanStation(name: String): String {
+    return name.replace("Hbf.", "Hbf").trim()
+}
 
 private fun rankStations(
     places: List<TransitPlace>,
@@ -624,16 +679,10 @@ private fun rankStations(
     return places
         .distinctBy { it.id }
         .filter { place ->
-            val name = place.name
-                .trim()
-                .lowercase()
+            val name = place.name.trim().lowercase()
 
-            val isOnlyCityName =
-                name == normalizedQuery ||
-                name == normalizedQuery.removeSuffix(" hbf") ||
-                name == normalizedQuery.removeSuffix(" hauptbahnhof")
-
-            !isOnlyCityName
+            name != normalizedQuery &&
+                name != normalizedQuery.removeSuffix(" hbf")
         }
         .sortedWith(
             compareBy<TransitPlace> {
@@ -646,14 +695,12 @@ private fun rankStations(
 
 private fun stationPriority(name: String): Int {
     val value = name.lowercase()
+
     return when {
         value.contains("hauptbahnhof") ||
             value.contains("hbf") -> 0
 
         value.contains("bahnhof") -> 1
-
-        value.contains("re") &&
-            value.contains("station") -> 2
 
         value.contains("s-bahn") ||
             value.contains("s bahn") -> 3
