@@ -36,7 +36,9 @@ data class TransitLeg(
     val cancelled: Boolean,
     val tripId: String,
     val routeId: String,
-    val headsign: String
+    val headsign: String,
+    val displayLine: String = line,
+    val isReplacementBus: Boolean = false
 )
 
 data class TransitConnection(
@@ -157,18 +159,31 @@ object TransitousClient {
                 val toStop = leg.optJSONObject("to") ?: JSONObject()
 
                 val line = leg.optString("displayName")
-                    .takeIf { it.isNotBlank() }
+                    .takeIf { it.isNotBlank() && it != "null" }
                     ?: route.optString("displayName")
-                        .takeIf { it.isNotBlank() }
+                        .takeIf { it.isNotBlank() && it != "null" }
                     ?: leg.optString("routeShortName")
-                        .takeIf { it.isNotBlank() }
+                        .takeIf { it.isNotBlank() && it != "null" }
                     ?: mode
+
+                val replacementBus = isReplacementBus(
+                    mode = mode,
+                    line = line,
+                    leg = leg,
+                    route = route
+                )
+
+                val displayLine = if (replacementBus) {
+                    "Bus ${cleanLine(line)}"
+                } else {
+                    line
+                }
 
                 TransitLeg(
                     line = line,
                     mode = mode,
-                    from = fromStop.optString("name"),
-                    to = toStop.optString("name"),
+                    from = stopName(fromStop),
+                    to = stopName(toStop),
 
                     departure = formatTime(
                         leg.optString("startTime")
@@ -197,14 +212,16 @@ object TransitousClient {
                     departurePlatform = platformName(fromStop),
                     arrivalPlatform = platformName(toStop),
 
-                    realtimeAvailable = leg.optBoolean("realTime", false),
-
+                    realtimeAvailable = hasRealtime(leg),
                     cancelled = leg.optBoolean("cancelled", false) ||
                         leg.optBoolean("tripCancelled", false),
 
                     tripId = leg.optString("tripId"),
                     routeId = leg.optString("routeId"),
-                    headsign = leg.optString("headsign")
+                    headsign = leg.optString("headsign"),
+
+                    displayLine = displayLine,
+                    isReplacementBus = replacementBus
                 )
             }
 
@@ -228,7 +245,7 @@ object TransitousClient {
                 "Dauer nicht angegeben"
             }
 
-            val label = legs.joinToString(" → ") { it.line }
+            val label = legs.joinToString(" → ") { it.displayLine }
                 .ifBlank { "Öffentliche Verbindung" }
 
             TransitConnection(
@@ -249,15 +266,79 @@ object TransitousClient {
             )
         }
     }
+        private fun isReplacementBus(
+        mode: String,
+        line: String,
+        leg: JSONObject,
+        route: JSONObject
+    ): Boolean {
+        if (!mode.equals("BUS", ignoreCase = true)) {
+            return false
+        }
+
+        val details = buildString {
+            append(line)
+            append(" ")
+            append(leg.optString("headsign"))
+            append(" ")
+            append(leg.optString("routeId"))
+            append(" ")
+            append(route.optString("displayName"))
+            append(" ")
+            append(route.optString("longName"))
+            append(" ")
+            append(route.optString("description"))
+            append(" ")
+            append(route.optString("shortName"))
+        }.lowercase(Locale.ROOT)
+
+        return details.contains("sev") ||
+            details.contains("schienenersatz") ||
+            details.contains("ersatzverkehr") ||
+            details.contains("replacement bus")
+    }
+
+    private fun cleanLine(line: String): String {
+        return line
+            .replace("Schienenersatzverkehr", "", ignoreCase = true)
+            .replace("Ersatzverkehr", "", ignoreCase = true)
+            .replace("Replacement bus", "", ignoreCase = true)
+            .replace("SEV", "", ignoreCase = true)
+            .trim()
+            .removePrefix("Bus ")
+            .ifBlank { "Bus" }
+    }
+
+    private fun stopName(stop: JSONObject): String {
+        return stop.optString("name")
+            .takeIf { it.isNotBlank() && it != "null" }
+            ?: stop.optString("stopName")
+                .takeIf { it.isNotBlank() && it != "null" }
+                ?: ""
+    }
+
+    private fun hasRealtime(leg: JSONObject): Boolean {
+        val realtime = leg.opt("realTime")
+
+        return when (realtime) {
+            is Boolean -> realtime
+            is JSONObject -> realtime.length() > 0
+            is String -> realtime.equals("true", ignoreCase = true)
+            else -> leg.optBoolean("realtimeAvailable", false)
+        }
+    }
 
     private fun platformName(stop: JSONObject): String {
-        val currentTrack = stop.optString("track")
-            .takeIf { it.isNotBlank() && it != "null" }
+        val candidates = listOf(
+            stop.optString("platform"),
+            stop.optString("track"),
+            stop.optString("scheduledTrack"),
+            stop.optString("platformName")
+        )
 
-        val scheduledTrack = stop.optString("scheduledTrack")
-            .takeIf { it.isNotBlank() && it != "null" }
-
-        return currentTrack ?: scheduledTrack ?: ""
+        return candidates.firstOrNull {
+            it.isNotBlank() && it != "null"
+        } ?: ""
     }
 
     private fun isKnownLongDistance(mode: String): Boolean {
@@ -317,3 +398,4 @@ object TransitousClient {
         }
     }
 }
+    
