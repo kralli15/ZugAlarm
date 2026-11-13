@@ -4,6 +4,7 @@ package de.zugalarm.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -58,7 +59,10 @@ fun ZugAlarmApp() {
         } else {
             delay(350)
             fromSuggestions = try {
-                TransitousClient.searchPlaces(fromText.trim()).take(8)
+                rankStations(
+                    TransitousClient.searchPlaces(fromText.trim()),
+                    fromText.trim()
+                ).take(8)
             } catch (_: Exception) {
                 emptyList()
             }
@@ -71,7 +75,10 @@ fun ZugAlarmApp() {
         } else {
             delay(350)
             toSuggestions = try {
-                TransitousClient.searchPlaces(toText.trim()).take(8)
+                rankStations(
+                    TransitousClient.searchPlaces(toText.trim()),
+                    toText.trim()
+                ).take(8)
             } catch (_: Exception) {
                 emptyList()
             }
@@ -83,6 +90,7 @@ fun ZugAlarmApp() {
             try {
                 val start = fromPlace
                 val end = toPlace
+
                 if (start == null || end == null) {
                     error = "Bitte Start und Ziel auswählen."
                 } else {
@@ -92,6 +100,7 @@ fun ZugAlarmApp() {
                         dateTime = null,
                         arriveBy = false
                     )
+
                     if (connections.isEmpty()) {
                         error = "Keine Verbindung gefunden."
                     }
@@ -102,6 +111,10 @@ fun ZugAlarmApp() {
                 searching = false
             }
         }
+    }
+
+    BackHandler(enabled = selected != null) {
+        selected = null
     }
 
     MaterialTheme(
@@ -136,7 +149,9 @@ fun ZugAlarmApp() {
             }
         ) { padding ->
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
                 contentPadding = PaddingValues(
                     start = 14.dp,
                     end = 14.dp,
@@ -203,7 +218,10 @@ fun ZugAlarmApp() {
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Icon(Icons.Default.Search, contentDescription = null)
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null
+                            )
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 if (searching) "Suche läuft …"
@@ -215,13 +233,20 @@ fun ZugAlarmApp() {
 
                 if (searching) {
                     item {
-                        Text("Verbindungen werden gesucht …", color = TextMuted)
+                        Text(
+                            "Verbindungen werden gesucht …",
+                            color = TextMuted
+                        )
                     }
                 }
 
                 if (error != null) {
                     item {
-                        Text(error!!, color = Bad, fontSize = 13.sp)
+                        Text(
+                            error!!,
+                            color = Bad,
+                            fontSize = 13.sp
+                        )
                     }
                 }
 
@@ -255,7 +280,10 @@ fun ZugAlarmApp() {
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            TextButton(onClick = { selected = null }) {
+
+                            TextButton(
+                                onClick = { selected = null }
+                            ) {
                                 Text("Zurück")
                             }
                         }
@@ -287,7 +315,8 @@ fun ZugAlarmApp() {
                     }
                 }
 
-                if (connections.isEmpty() &&
+                if (
+                    connections.isEmpty() &&
                     selected == null &&
                     error == null &&
                     !searching
@@ -321,9 +350,13 @@ private fun StationInput(
             label = { Text(label) },
             singleLine = true,
             shape = RoundedCornerShape(10.dp),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Search
+            ),
             keyboardActions = KeyboardActions(
-                onSearch = { suggestions.firstOrNull()?.let(onSelect) }
+                onSearch = {
+                    suggestions.firstOrNull()?.let(onSelect)
+                }
             ),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = TextMain,
@@ -493,7 +526,11 @@ private fun StopTimelineRow(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
-            Text(label, color = TextMuted, fontSize = 10.sp)
+            Text(
+                label,
+                color = TextMuted,
+                fontSize = 10.sp
+            )
         }
 
         Column(horizontalAlignment = Alignment.End) {
@@ -513,7 +550,11 @@ private fun StopTimelineRow(
                     fontWeight = FontWeight.Bold
                 )
             }
-            Text("Plan       Echtzeit", color = TextMuted, fontSize = 9.sp)
+            Text(
+                "Plan       Echtzeit",
+                color = TextMuted,
+                fontSize = 9.sp
+            )
         }
 
         Spacer(Modifier.width(9.dp))
@@ -542,4 +583,41 @@ private fun StopTimelineRow(
 
 private fun cleanStation(name: String): String =
     name.replace("Hbf.", "Hbf").trim()
-    
+
+private fun rankStations(
+    places: List<TransitPlace>,
+    query: String
+): List<TransitPlace> {
+    val normalizedQuery = query
+        .trim()
+        .lowercase()
+        .replace("hauptbahnhof", "hbf")
+
+    return places
+        .distinctBy { it.id }
+        .filter { place ->
+            val name = place.name
+                .trim()
+                .lowercase()
+
+            val isOnlyCityName =
+                name == normalizedQuery ||
+                name == normalizedQuery.removeSuffix(" hbf") ||
+                name == normalizedQuery.removeSuffix(" hauptbahnhof")
+
+            !isOnlyCityName
+        }
+        .sortedWith(
+            compareBy<TransitPlace> {
+                stationPriority(it.name)
+            }.thenBy {
+                it.name.lowercase()
+            }
+        )
+}
+
+private fun stationPriority(name: String): Int {
+    val value = name.lowercase()
+
+    return when {
+        value.contains("hauptbahnh
