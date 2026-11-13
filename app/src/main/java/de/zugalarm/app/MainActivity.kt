@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -45,6 +46,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun ZugAlarmApp() {
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     var fromText by remember {
         mutableStateOf(TextFieldValue(""))
     }
@@ -90,7 +93,6 @@ fun ZugAlarmApp() {
                 fromSuggestions = emptyList()
             } else {
                 delay(400)
-
                 fromSuggestions = try {
                     rankStations(
                         TransitousClient.searchPlaces(query),
@@ -113,7 +115,6 @@ fun ZugAlarmApp() {
                 toSuggestions = emptyList()
             } else {
                 delay(400)
-
                 toSuggestions = try {
                     rankStations(
                         TransitousClient.searchPlaces(query),
@@ -186,7 +187,6 @@ fun ZugAlarmApp() {
                         fontSize = 25.sp,
                         fontWeight = FontWeight.Bold
                     )
-
                     Text(
                         "Dein persönlicher Streckenagent",
                         color = TextMuted,
@@ -238,7 +238,6 @@ fun ZugAlarmApp() {
                             },
                             onSelect = {
                                 val name = cleanStation(it.name)
-
                                 fromPlace = it
                                 fromText = TextFieldValue(
                                     text = name,
@@ -258,7 +257,6 @@ fun ZugAlarmApp() {
                             },
                             onSelect = {
                                 val name = cleanStation(it.name)
-
                                 toPlace = it
                                 toText = TextFieldValue(
                                     text = name,
@@ -270,6 +268,9 @@ fun ZugAlarmApp() {
 
                         Button(
                             onClick = {
+                                keyboardController?.hide()
+                                fromSuggestions = emptyList()
+                                toSuggestions = emptyList()
                                 connections = emptyList()
                                 selected = null
                                 error = null
@@ -285,9 +286,7 @@ fun ZugAlarmApp() {
                                 Icons.Default.Search,
                                 contentDescription = null
                             )
-
                             Spacer(Modifier.width(8.dp))
-
                             Text(
                                 if (searching) "Suche läuft …"
                                 else "Verbindungen suchen"
@@ -315,10 +314,7 @@ fun ZugAlarmApp() {
                     }
                 }
 
-                if (
-                    connections.isNotEmpty() &&
-                    selected == null
-                ) {
+                if (connections.isNotEmpty() && selected == null) {
                     item {
                         Text(
                             "GEFUNDENE VERBINDUNGEN",
@@ -350,11 +346,8 @@ fun ZugAlarmApp() {
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
-
                             TextButton(
-                                onClick = {
-                                    selected = null
-                                }
+                                onClick = { selected = null }
                             ) {
                                 Text("Zurück")
                             }
@@ -444,9 +437,7 @@ private fun StationInput(
 
         suggestions.forEach { place ->
             TextButton(
-                onClick = {
-                    onSelect(place)
-                },
+                onClick = { onSelect(place) },
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(
                     horizontal = 10.dp,
@@ -477,7 +468,7 @@ private fun ConnectionCard(
     ) {
         Column(
             Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(7.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
                 connection.label,
@@ -493,12 +484,173 @@ private fun ConnectionCard(
                 fontSize = 14.sp
             )
 
+            connection.legs.forEach { leg ->
+                ConnectionLegPreview(leg)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConnectionLegPreview(leg: TransitLeg) {
+    val departureDelay = delayMinutes(
+        leg.scheduledDeparture,
+        leg.departure
+    )
+    val arrivalDelay = delayMinutes(
+        leg.scheduledArrival,
+        leg.arrival
+    )
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(
+                Background,
+                RoundedCornerShape(9.dp)
+            )
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                "${connection.legs.size} Teilstrecken",
-                color = TextMuted,
-                fontSize = 11.sp
+                leg.line,
+                color = Accent,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
+            )
+
+            Text(
+                when {
+                    leg.cancelled -> "FÄLLT AUS"
+                    leg.realtimeAvailable -> "ECHTZEIT"
+                    else -> "FAHRPLAN"
+                },
+                color = when {
+                    leg.cancelled -> Bad
+                    leg.realtimeAvailable -> Good
+                    else -> TextMuted
+                },
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
             )
         }
+
+        PreviewTimeRow(
+            label = "Ab",
+            station = leg.from,
+            planned = leg.scheduledDeparture,
+            actual = leg.departure,
+            delay = departureDelay
+        )
+
+        PreviewTimeRow(
+            label = "An",
+            station = leg.to,
+            planned = leg.scheduledArrival,
+            actual = leg.arrival,
+            delay = arrivalDelay
+        )
+    }
+}
+
+@Composable
+private fun PreviewTimeRow(
+    label: String,
+    station: String,
+    planned: String,
+    actual: String,
+    delay: Int?
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label,
+            color = TextMuted,
+            fontSize = 11.sp,
+            modifier = Modifier.width(22.dp)
+        )
+
+        Text(
+            cleanStation(station),
+            color = TextMain,
+            fontSize = 12.sp,
+            modifier = Modifier.weight(1f),
+            maxLines = 1
+        )
+
+        Text(
+            planned.ifBlank { "?" },
+            color = TextMuted,
+            fontSize = 11.sp
+        )
+
+        Spacer(Modifier.width(7.dp))
+
+        Text(
+            actual.ifBlank { "?" },
+            color = if (delay != null && delay > 0) Bad
+            else if (delay != null && delay < 0) Good
+            else TextMain,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        if (delay != null && delay != 0) {
+            Spacer(Modifier.width(5.dp))
+            Text(
+                if (delay > 0) "+${delay}′" else "${delay}′",
+                color = if (delay > 0) Bad else Good,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+private fun delayMinutes(
+    planned: String,
+    actual: String
+): Int? {
+    if (
+        planned.isBlank() ||
+        actual.isBlank() ||
+        planned == "?" ||
+        actual == "?"
+    ) {
+        return null
+    }
+
+    return try {
+        val plannedParts = planned.split(":")
+        val actualParts = actual.split(":")
+
+        if (plannedParts.size != 2 || actualParts.size != 2) {
+            return null
+        }
+
+        val plannedMinutes =
+            plannedParts[0].toInt() * 60 +
+                plannedParts[1].toInt()
+
+        val actualMinutes =
+            actualParts[0].toInt() * 60 +
+                actualParts[1].toInt()
+
+        var difference = actualMinutes - plannedMinutes
+
+        if (difference < -720) difference += 1440
+        if (difference > 720) difference -= 1440
+
+        difference
+    } catch (_: Exception) {
+        null
     }
 }
 
@@ -523,12 +675,16 @@ private fun TimelineLeg(leg: TransitLeg) {
             )
 
             Text(
-                if (leg.cancelled) "FÄLLT AUS"
-                else if (leg.realtimeAvailable) "ECHTZEIT"
-                else "FAHRPLAN",
-                color = if (leg.cancelled) Bad
-                else if (leg.realtimeAvailable) Good
-                else TextMuted,
+                when {
+                    leg.cancelled -> "FÄLLT AUS"
+                    leg.realtimeAvailable -> "ECHTZEIT"
+                    else -> "FAHRPLAN"
+                },
+                color = when {
+                    leg.cancelled -> Bad
+                    leg.realtimeAvailable -> Good
+                    else -> TextMuted
+                },
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -564,7 +720,6 @@ private fun TimelineLeg(leg: TransitLeg) {
 
         if (leg.headsign.isNotBlank()) {
             Spacer(Modifier.height(8.dp))
-
             Text(
                 "Zielanzeige: ${leg.headsign}",
                 color = TextMuted,
@@ -605,7 +760,6 @@ private fun StopTimelineRow(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
-
             Text(
                 label,
                 color = TextMuted,
@@ -623,7 +777,6 @@ private fun StopTimelineRow(
                     color = TextMuted,
                     fontSize = 12.sp
                 )
-
                 Text(
                     actual.ifBlank { "?" },
                     color = if (planned != actual) Bad else Good,
@@ -680,7 +833,6 @@ private fun rankStations(
         .distinctBy { it.id }
         .filter { place ->
             val name = place.name.trim().lowercase()
-
             name != normalizedQuery &&
                 name != normalizedQuery.removeSuffix(" hbf")
         }
