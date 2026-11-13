@@ -765,6 +765,88 @@ Column(
         )
     }
 
+    Spacer(Modifier.height(10.dp))
+
+val departureDelay = delayMinutes(
+    leg.scheduledDeparture,
+    leg.departure
+)
+
+val arrivalDelay = delayMinutes(
+    leg.scheduledArrival,
+    leg.arrival
+)
+
+Column(
+    modifier = Modifier
+        .fillMaxWidth()
+        .background(
+            Background,
+            RoundedCornerShape(8.dp)
+        )
+        .padding(10.dp),
+    verticalArrangement = Arrangement.spacedBy(5.dp)
+) {
+    when {
+        leg.cancelled -> {
+            Text(
+                "Fahrt fällt aus",
+                color = Bad,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        !leg.realtimeAvailable -> {
+            Text(
+                "Keine Echtzeitdaten verfügbar",
+                color = TextMuted,
+                fontSize = 12.sp
+            )
+        }
+
+        departureDelay != null && departureDelay > 0 -> {
+            Text(
+                "Abfahrt: ${departureDelay} Minuten verspätet",
+                color = Bad,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        arrivalDelay != null && arrivalDelay > 0 -> {
+            Text(
+                "Ankunft: ${arrivalDelay} Minuten verspätet",
+                color = Bad,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        else -> {
+            Text(
+                "Aktuell pünktlich",
+                color = Good,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+
+    if (
+        departureDelay != null &&
+        arrivalDelay != null &&
+        departureDelay > 0 &&
+        arrivalDelay > 0 &&
+        departureDelay != arrivalDelay
+    ) {
+        Text(
+            "Verspätung bei Ankunft: ${arrivalDelay} Minuten",
+            color = TextMuted,
+            fontSize = 11.sp
+        )
+    }
+
     if (leg.headsign.isNotBlank()) {
         Text(
             "Fahrtrichtung: ${leg.headsign}",
@@ -772,6 +854,7 @@ Column(
             fontSize = 11.sp
         )
     }
+}
     }
 }
 
