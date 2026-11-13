@@ -13,6 +13,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Train
+import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +36,8 @@ private val TextMuted = Color(0xFF9BA9BC)
 private val Accent = Color(0xFF3988D8)
 private val Good = Color(0xFF59C58A)
 private val Bad = Color(0xFFFF7777)
+private val SevMagenta = Color(0xFF8A1B59)
+private val BusOrange = Color(0xFFF5A623)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,7 +92,6 @@ fun ZugAlarmApp() {
             fromSuggestions = emptyList()
         } else {
             val query = fromText.text.trim()
-
             if (query.length < 2) {
                 fromSuggestions = emptyList()
             } else {
@@ -110,7 +113,6 @@ fun ZugAlarmApp() {
             toSuggestions = emptyList()
         } else {
             val query = toText.text.trim()
-
             if (query.length < 2) {
                 toSuggestions = emptyList()
             } else {
@@ -176,10 +178,7 @@ fun ZugAlarmApp() {
                     Modifier
                         .fillMaxWidth()
                         .background(Background)
-                        .padding(
-                            horizontal = 18.dp,
-                            vertical = 16.dp
-                        )
+                        .padding(horizontal = 18.dp, vertical = 16.dp)
                 ) {
                     Text(
                         "ZugAlarm",
@@ -206,20 +205,15 @@ fun ZugAlarmApp() {
                     top = 8.dp,
                     bottom = 28.dp
                 ),
-                verticalArrangement =
-                    Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .background(
-                                Panel,
-                                RoundedCornerShape(16.dp)
-                            )
+                            .background(Panel, RoundedCornerShape(16.dp))
                             .padding(14.dp),
-                        verticalArrangement =
-                            Arrangement.spacedBy(9.dp)
+                        verticalArrangement = Arrangement.spacedBy(9.dp)
                     ) {
                         Text(
                             "VERBINDUNG SUCHEN",
@@ -335,10 +329,8 @@ fun ZugAlarmApp() {
                     item {
                         Row(
                             Modifier.fillMaxWidth(),
-                            horizontalArrangement =
-                                Arrangement.SpaceBetween,
-                            verticalAlignment =
-                                Alignment.CenterVertically
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 "DEINE REISE",
@@ -373,7 +365,7 @@ fun ZugAlarmApp() {
 
                     item {
                         Text(
-                            "Dies ist der Fahrtverlauf der Verbindung. Eine GPS-Position des Zuges wird von dieser Datenquelle nicht geliefert.",
+                            "Der angezeigte Abfahrtsort entspricht den Angaben der Fahrplandaten. Eine GPS-Position des Zuges wird nicht geliefert.",
                             color = TextMuted,
                             fontSize = 11.sp
                         )
@@ -397,8 +389,7 @@ fun ZugAlarmApp() {
             }
         }
     }
-}
-@Composable
+    @Composable
 private fun StationInput(
     label: String,
     value: TextFieldValue,
@@ -406,9 +397,7 @@ private fun StationInput(
     onValueChange: (TextFieldValue) -> Unit,
     onSelect: (TransitPlace) -> Unit
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -484,76 +473,106 @@ private fun ConnectionCard(
                 fontSize = 14.sp
             )
 
-            connection.legs.forEach { leg ->
-                ConnectionLegPreview(leg)
+            connection.legs.forEachIndexed { index, leg ->
+                if (isReplacementBus(leg)) {
+                    SevBadge(leg.line)
+                } else {
+                    Text(
+                        leg.line,
+                        color = Accent,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                PreviewTimeRow(
+                    label = "Ab",
+                    station = leg.from,
+                    planned = leg.scheduledDeparture,
+                    actual = leg.departure,
+                    platform = leg.departurePlatform
+                )
+
+                PreviewTimeRow(
+                    label = "An",
+                    station = leg.to,
+                    planned = leg.scheduledArrival,
+                    actual = leg.arrival,
+                    platform = leg.arrivalPlatform
+                )
+
+                if (index < connection.legs.lastIndex) {
+                    Divider(
+                        color = TextMuted.copy(alpha = 0.2f),
+                        thickness = 1.dp
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ConnectionLegPreview(leg: TransitLeg) {
-    val departureDelay = delayMinutes(
-        leg.scheduledDeparture,
-        leg.departure
-    )
-    val arrivalDelay = delayMinutes(
-        leg.scheduledArrival,
-        leg.arrival
-    )
+private fun SevBadge(line: String) {
+    val serviceName = line
+        .replace("Schienenersatzverkehr", "", ignoreCase = true)
+        .replace("SEV", "", ignoreCase = true)
+        .trim()
+        .ifBlank { "Bus" }
+        .let {
+            if (it.startsWith("Bus", true)) it else "Bus $it"
+        }
 
-    Column(
-        Modifier
-            .fillMaxWidth()
+    Row(
+        modifier = Modifier
             .background(
-                Background,
-                RoundedCornerShape(9.dp)
+                SevMagenta,
+                RoundedCornerShape(6.dp)
             )
-            .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp)
+            .padding(horizontal = 9.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp)
     ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                leg.line,
-                color = Accent,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            )
+        Icon(
+            Icons.Default.Train,
+            contentDescription = "Zug",
+            tint = Color.White,
+            modifier = Modifier.size(18.dp)
+        )
 
-            Text(
-                when {
-                    leg.cancelled -> "FÄLLT AUS"
-                    leg.realtimeAvailable -> "ECHTZEIT"
-                    else -> "FAHRPLAN"
-                },
-                color = when {
-                    leg.cancelled -> Bad
-                    leg.realtimeAvailable -> Good
-                    else -> TextMuted
-                },
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
+        Text(
+            "→",
+            color = Color.White,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Box(
+            modifier = Modifier
+                .size(23.dp)
+                .background(BusOrange, RoundedCornerShape(50)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.DirectionsBus,
+                contentDescription = "Bus",
+                tint = Color.White,
+                modifier = Modifier.size(16.dp)
             )
         }
 
-        PreviewTimeRow(
-            label = "Ab",
-            station = leg.from,
-            planned = leg.scheduledDeparture,
-            actual = leg.departure,
-            delay = departureDelay
+        Box(
+            Modifier
+                .width(1.dp)
+                .height(19.dp)
+                .background(Color.White.copy(alpha = 0.8f))
         )
 
-        PreviewTimeRow(
-            label = "An",
-            station = leg.to,
-            planned = leg.scheduledArrival,
-            actual = leg.arrival,
-            delay = arrivalDelay
+        Text(
+            serviceName,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp
         )
     }
 }
@@ -564,8 +583,10 @@ private fun PreviewTimeRow(
     station: String,
     planned: String,
     actual: String,
-    delay: Int?
+    platform: String
 ) {
+    val delay = delayMinutes(planned, actual)
+
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -577,13 +598,26 @@ private fun PreviewTimeRow(
             modifier = Modifier.width(22.dp)
         )
 
-        Text(
-            cleanStation(station),
-            color = TextMain,
-            fontSize = 12.sp,
-            modifier = Modifier.weight(1f),
-            maxLines = 1
-        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                cleanStation(station),
+                color = TextMain,
+                fontSize = 12.sp,
+                maxLines = 2
+            )
+
+            if (platform.isNotBlank()) {
+                Text(
+                    if (isBusPlatform(platform)) {
+                        "Busstg. ${platform.removePrefix("Busstg.").trim()}"
+                    } else {
+                        "Gleis $platform"
+                    },
+                    color = TextMuted,
+                    fontSize = 10.sp
+                )
+            }
+        }
 
         Text(
             planned.ifBlank { "?" },
@@ -595,9 +629,12 @@ private fun PreviewTimeRow(
 
         Text(
             actual.ifBlank { "?" },
-            color = if (delay != null && delay > 0) Bad
-            else if (delay != null && delay < 0) Good
-            else TextMain,
+            color = when {
+                delay == null -> TextMain
+                delay > 0 -> Bad
+                delay < 0 -> Good
+                else -> Good
+            },
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold
         )
@@ -610,48 +647,39 @@ private fun PreviewTimeRow(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )
+        } else if (delay == 0) {
+            Spacer(Modifier.width(4.dp))
+            Text(
+                "✓",
+                color = Good,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
 
-private fun delayMinutes(
-    planned: String,
-    actual: String
-): Int? {
-    if (
-        planned.isBlank() ||
-        actual.isBlank() ||
-        planned == "?" ||
-        actual == "?"
-    ) {
-        return null
+private fun isBusPlatform(value: String): Boolean {
+    return value.contains("bus", ignoreCase = true) ||
+        value.contains("busstg", ignoreCase = true) ||
+        value.contains("bussteig", ignoreCase = true)
+}
+
+private fun isReplacementBus(leg: TransitLeg): Boolean {
+    if (!leg.mode.equals("BUS", ignoreCase = true)) {
+        return false
     }
 
-    return try {
-        val plannedParts = planned.split(":")
-        val actualParts = actual.split(":")
+    val details = listOf(
+        leg.line,
+        leg.headsign,
+        leg.routeId
+    ).joinToString(" ").lowercase()
 
-        if (plannedParts.size != 2 || actualParts.size != 2) {
-            return null
-        }
-
-        val plannedMinutes =
-            plannedParts[0].toInt() * 60 +
-                plannedParts[1].toInt()
-
-        val actualMinutes =
-            actualParts[0].toInt() * 60 +
-                actualParts[1].toInt()
-
-        var difference = actualMinutes - plannedMinutes
-
-        if (difference < -720) difference += 1440
-        if (difference > 720) difference -= 1440
-
-        difference
-    } catch (_: Exception) {
-        null
-    }
+    return details.contains("sev") ||
+        details.contains("schienenersatz") ||
+        details.contains("replacement bus") ||
+        details.contains("ersatzverkehr")
 }
 
 @Composable
@@ -667,12 +695,16 @@ private fun TimelineLeg(leg: TransitLeg) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                leg.line,
-                color = Accent,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+            if (isReplacementBus(leg)) {
+                SevBadge(leg.line)
+            } else {
+                Text(
+                    leg.line,
+                    color = Accent,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
             Text(
                 when {
@@ -738,6 +770,8 @@ private fun StopTimelineRow(
     label: String,
     cancelled: Boolean
 ) {
+    val delay = delayMinutes(planned, actual)
+
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -777,9 +811,14 @@ private fun StopTimelineRow(
                     color = TextMuted,
                     fontSize = 12.sp
                 )
+
                 Text(
                     actual.ifBlank { "?" },
-                    color = if (planned != actual) Bad else Good,
+                    color = when {
+                        delay == null -> TextMain
+                        delay > 0 -> Bad
+                        else -> Good
+                    },
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -800,7 +839,11 @@ private fun StopTimelineRow(
                 shape = RoundedCornerShape(3.dp)
             ) {
                 Text(
-                    platform,
+                    if (isBusPlatform(platform)) {
+                        "Busstg. ${platform.removePrefix("Busstg.").trim()}"
+                    } else {
+                        platform
+                    },
                     color = Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
@@ -813,6 +856,34 @@ private fun StopTimelineRow(
         } else {
             Spacer(Modifier.width(24.dp))
         }
+    }
+}
+
+private fun delayMinutes(
+    planned: String,
+    actual: String
+): Int? {
+    if (
+        planned.isBlank() ||
+        actual.isBlank() ||
+        planned == "?" ||
+        actual == "?"
+    ) return null
+
+    return try {
+        val p = planned.split(":")
+        val a = actual.split(":")
+        if (p.size != 2 || a.size != 2) return null
+
+        val plannedMinutes = p[0].toInt() * 60 + p[1].toInt()
+        val actualMinutes = a[0].toInt() * 60 + a[1].toInt()
+
+        var difference = actualMinutes - plannedMinutes
+        if (difference < -720) difference += 1440
+        if (difference > 720) difference -= 1440
+        difference
+    } catch (_: Exception) {
+        null
     }
 }
 
@@ -851,20 +922,17 @@ private fun stationPriority(name: String): Int {
     return when {
         value.contains("hauptbahnhof") ||
             value.contains("hbf") -> 0
-
         value.contains("bahnhof") -> 1
-
         value.contains("s-bahn") ||
             value.contains("s bahn") -> 3
-
         value.contains("u-bahn") ||
             value.contains("schwebebahn") -> 4
-
         value.contains("bus") ||
             value.contains("straße") ||
             value.contains("str.") ||
             value.contains("platz") -> 5
-
         else -> 2
     }
 }
+}
+
