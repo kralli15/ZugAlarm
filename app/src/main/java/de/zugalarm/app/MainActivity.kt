@@ -423,10 +423,10 @@ private fun ConnectionCard(
                     SevBadge(leg.displayLine)
                 } else {
                     Text(
-                        leg.line,
-                        color = Accent,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        trainLabel(leg),
+color = Accent,
+fontSize = 14.sp,
+fontWeight = FontWeight.Bold
                     )
                 }
 
@@ -628,10 +628,10 @@ private fun TimelineLeg(leg: TransitLeg) {
                 SevBadge(leg.displayLine)
             } else {
                 Text(
-                    leg.line,
-                    color = Accent,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    trainLabel(leg),
+color = Accent,
+fontSize = 16.sp,
+fontWeight = FontWeight.Bold
                 )
             }
 
@@ -832,5 +832,19 @@ private fun stationPriority(name: String): Int {
             value.contains("str.") ||
             value.contains("platz") -> 5
         else -> 2
+    }
+}
+
+private fun trainLabel(leg: TransitLeg): String {
+    val base = leg.line
+    val destination = leg.headsign.trim()
+
+    return if (
+        destination.isNotBlank() &&
+        !base.contains(destination, ignoreCase = true)
+    ) {
+        "$base → $destination"
+    } else {
+        base
     }
 }
