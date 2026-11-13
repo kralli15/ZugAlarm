@@ -389,7 +389,9 @@ fun ZugAlarmApp() {
             }
         }
     }
-    @Composable
+}
+
+@Composable
 private fun StationInput(
     label: String,
     value: TextFieldValue,
@@ -934,5 +936,3 @@ private fun stationPriority(name: String): Int {
         else -> 2
     }
 }
-}
-
