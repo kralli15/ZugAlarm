@@ -24,6 +24,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 
 private val Background = Color(0xFF080D16)
 private val Panel = Color(0xFF111B2A)
@@ -42,8 +44,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun ZugAlarmApp() {
-    var fromText by remember { mutableStateOf("") }
-    var toText by remember { mutableStateOf("") }
+    var fromText by remember { mutableStateOf(TextFieldValue("")) }
+    var toText by remember { mutableStateOf(TextFieldValue("")) }
     var fromPlace by remember { mutableStateOf<TransitPlace?>(null) }
     var toPlace by remember { mutableStateOf<TransitPlace?>(null) }
     var fromSuggestions by remember { mutableStateOf(emptyList<TransitPlace>()) }
@@ -53,37 +55,41 @@ fun ZugAlarmApp() {
     var searching by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(fromText) {
-        if (fromText.trim().length < 2) {
-            fromSuggestions = emptyList()
-        } else {
-            delay(350)
-            fromSuggestions = try {
-                rankStations(
-                    TransitousClient.searchPlaces(fromText.trim()),
-                    fromText.trim()
-                ).take(8)
-            } catch (_: Exception) {
-                emptyList()
-            }
+    LaunchedEffect(fromText.text, fromPlace) {
+    if (fromPlace != null) {
+        fromSuggestions = emptyList()
+    } else if (fromText.text.trim().length < 2) {
+        fromSuggestions = emptyList()
+    } else {
+        delay(350)
+        fromSuggestions = try {
+            rankStations(
+                TransitousClient.searchPlaces(fromText.text.trim()),
+                fromText.text.trim()
+            ).take(8)
+        } catch (_: Exception) {
+            emptyList()
         }
     }
+}
 
-    LaunchedEffect(toText) {
-        if (toText.trim().length < 2) {
-            toSuggestions = emptyList()
-        } else {
-            delay(350)
-            toSuggestions = try {
-                rankStations(
-                    TransitousClient.searchPlaces(toText.trim()),
-                    toText.trim()
-                ).take(8)
-            } catch (_: Exception) {
-                emptyList()
-            }
+LaunchedEffect(toText.text, toPlace) {
+    if (toPlace != null) {
+        toSuggestions = emptyList()
+    } else if (toText.text.trim().length < 2) {
+        toSuggestions = emptyList()
+    } else {
+        delay(350)
+        toSuggestions = try {
+            rankStations(
+                TransitousClient.searchPlaces(toText.text.trim()),
+                toText.text.trim()
+            ).take(8)
+        } catch (_: Exception) {
+            emptyList()
         }
     }
+}
 
     LaunchedEffect(searching) {
         if (searching) {
