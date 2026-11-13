@@ -42,9 +42,7 @@ private val BusOrange = Color(0xFFF5A623)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            ZugAlarmApp()
-        }
+        setContent { ZugAlarmApp() }
     }
 }
 
@@ -52,40 +50,17 @@ class MainActivity : ComponentActivity() {
 fun ZugAlarmApp() {
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    var fromText by remember {
-        mutableStateOf(TextFieldValue(""))
-    }
-    var toText by remember {
-        mutableStateOf(TextFieldValue(""))
-    }
+    var fromText by remember { mutableStateOf(TextFieldValue("")) }
+    var toText by remember { mutableStateOf(TextFieldValue("")) }
+    var fromPlace by remember { mutableStateOf<TransitPlace?>(null) }
+    var toPlace by remember { mutableStateOf<TransitPlace?>(null) }
 
-    var fromPlace by remember {
-        mutableStateOf<TransitPlace?>(null)
-    }
-    var toPlace by remember {
-        mutableStateOf<TransitPlace?>(null)
-    }
-
-    var fromSuggestions by remember {
-        mutableStateOf(emptyList<TransitPlace>())
-    }
-    var toSuggestions by remember {
-        mutableStateOf(emptyList<TransitPlace>())
-    }
-
-    var connections by remember {
-        mutableStateOf(emptyList<TransitConnection>())
-    }
-    var selected by remember {
-        mutableStateOf<TransitConnection?>(null)
-    }
-
-    var searching by remember {
-        mutableStateOf(false)
-    }
-    var error by remember {
-        mutableStateOf<String?>(null)
-    }
+    var fromSuggestions by remember { mutableStateOf(emptyList<TransitPlace>()) }
+    var toSuggestions by remember { mutableStateOf(emptyList<TransitPlace>()) }
+    var connections by remember { mutableStateOf(emptyList<TransitConnection>()) }
+    var selected by remember { mutableStateOf<TransitConnection?>(null) }
+    var searching by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(fromText.text, fromPlace) {
         if (fromPlace != null) {
@@ -97,10 +72,7 @@ fun ZugAlarmApp() {
             } else {
                 delay(400)
                 fromSuggestions = try {
-                    rankStations(
-                        TransitousClient.searchPlaces(query),
-                        query
-                    ).take(8)
+                    rankStations(TransitousClient.searchPlaces(query), query).take(8)
                 } catch (_: Exception) {
                     emptyList()
                 }
@@ -118,10 +90,7 @@ fun ZugAlarmApp() {
             } else {
                 delay(400)
                 toSuggestions = try {
-                    rankStations(
-                        TransitousClient.searchPlaces(query),
-                        query
-                    ).take(8)
+                    rankStations(TransitousClient.searchPlaces(query), query).take(8)
                 } catch (_: Exception) {
                     emptyList()
                 }
@@ -138,21 +107,18 @@ fun ZugAlarmApp() {
                 if (start == null || end == null) {
                     error = "Bitte Start und Ziel auswählen."
                 } else {
-                    connections =
-                        TransitousClient.searchConnections(
-                            from = start,
-                            to = end,
-                            dateTime = null,
-                            arriveBy = false
-                        )
-
+                    connections = TransitousClient.searchConnections(
+                        from = start,
+                        to = end,
+                        dateTime = null,
+                        arriveBy = false
+                    )
                     if (connections.isEmpty()) {
                         error = "Keine Verbindung gefunden."
                     }
                 }
             } catch (e: Exception) {
-                error = e.message
-                    ?: "Verbindungssuche fehlgeschlagen."
+                error = e.message ?: "Verbindungssuche fehlgeschlagen."
             } finally {
                 searching = false
             }
@@ -194,7 +160,6 @@ fun ZugAlarmApp() {
                 }
             }
         ) { padding ->
-
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -234,7 +199,7 @@ fun ZugAlarmApp() {
                                 val name = cleanStation(it.name)
                                 fromPlace = it
                                 fromText = TextFieldValue(
-                                    text = name,
+                                    name,
                                     selection = TextRange(name.length)
                                 )
                                 fromSuggestions = emptyList()
@@ -253,7 +218,7 @@ fun ZugAlarmApp() {
                                 val name = cleanStation(it.name)
                                 toPlace = it
                                 toText = TextFieldValue(
-                                    text = name,
+                                    name,
                                     selection = TextRange(name.length)
                                 )
                                 toSuggestions = emptyList()
@@ -276,35 +241,22 @@ fun ZugAlarmApp() {
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = null
-                            )
+                            Icon(Icons.Default.Search, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text(
-                                if (searching) "Suche läuft …"
-                                else "Verbindungen suchen"
-                            )
+                            Text(if (searching) "Suche läuft …" else "Verbindungen suchen")
                         }
                     }
                 }
 
                 if (searching) {
                     item {
-                        Text(
-                            "Verbindungen werden gesucht …",
-                            color = TextMuted
-                        )
+                        Text("Verbindungen werden gesucht …", color = TextMuted)
                     }
                 }
 
                 if (error != null) {
                     item {
-                        Text(
-                            error!!,
-                            color = Bad,
-                            fontSize = 13.sp
-                        )
+                        Text(error!!, color = Bad, fontSize = 13.sp)
                     }
                 }
 
@@ -338,9 +290,7 @@ fun ZugAlarmApp() {
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            TextButton(
-                                onClick = { selected = null }
-                            ) {
+                            TextButton(onClick = { selected = null }) {
                                 Text("Zurück")
                             }
                         }
@@ -365,7 +315,7 @@ fun ZugAlarmApp() {
 
                     item {
                         Text(
-                            "Der angezeigte Abfahrtsort entspricht den Angaben der Fahrplandaten. Eine GPS-Position des Zuges wird nicht geliefert.",
+                            "Die Haltestellen und Abfahrtsorte entsprechen den verfügbaren Fahrplandaten. Eine GPS-Position des Zuges wird nicht geliefert.",
                             color = TextMuted,
                             fontSize = 11.sp
                         )
@@ -407,13 +357,9 @@ private fun StationInput(
             label = { Text(label) },
             singleLine = true,
             shape = RoundedCornerShape(10.dp),
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Search
-            ),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(
-                onSearch = {
-                    suggestions.firstOrNull()?.let(onSelect)
-                }
+                onSearch = { suggestions.firstOrNull()?.let(onSelect) }
             ),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = TextMain,
@@ -430,10 +376,7 @@ private fun StationInput(
             TextButton(
                 onClick = { onSelect(place) },
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(
-                    horizontal = 10.dp,
-                    vertical = 2.dp
-                )
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
             ) {
                 Text(
                     cleanStation(place.name),
@@ -476,8 +419,8 @@ private fun ConnectionCard(
             )
 
             connection.legs.forEachIndexed { index, leg ->
-                if (isReplacementBus(leg)) {
-                    SevBadge(leg.line)
+                if (leg.isReplacementBus) {
+                    SevBadge(leg.displayLine)
                 } else {
                     Text(
                         leg.line,
@@ -492,7 +435,10 @@ private fun ConnectionCard(
                     station = leg.from,
                     planned = leg.scheduledDeparture,
                     actual = leg.departure,
-                    platform = leg.departurePlatform
+                    platform = leg.departurePlatform,
+                    realtimeAvailable = leg.realtimeAvailable,
+                    cancelled = leg.cancelled,
+                    replacementBus = leg.isReplacementBus
                 )
 
                 PreviewTimeRow(
@@ -500,11 +446,14 @@ private fun ConnectionCard(
                     station = leg.to,
                     planned = leg.scheduledArrival,
                     actual = leg.arrival,
-                    platform = leg.arrivalPlatform
+                    platform = leg.arrivalPlatform,
+                    realtimeAvailable = leg.realtimeAvailable,
+                    cancelled = leg.cancelled,
+                    replacementBus = leg.isReplacementBus
                 )
 
                 if (index < connection.legs.lastIndex) {
-                    Divider(
+                    HorizontalDivider(
                         color = TextMuted.copy(alpha = 0.2f),
                         thickness = 1.dp
                     )
@@ -513,24 +462,18 @@ private fun ConnectionCard(
         }
     }
 }
-
 @Composable
 private fun SevBadge(line: String) {
     val serviceName = line
         .replace("Schienenersatzverkehr", "", ignoreCase = true)
         .replace("SEV", "", ignoreCase = true)
         .trim()
-        .ifBlank { "Bus" }
-        .let {
-            if (it.startsWith("Bus", true)) it else "Bus $it"
-        }
+        .removePrefix("Bus ")
+        .let { if (it.isBlank()) "Bus" else "Bus $it" }
 
     Row(
         modifier = Modifier
-            .background(
-                SevMagenta,
-                RoundedCornerShape(6.dp)
-            )
+            .background(SevMagenta, RoundedCornerShape(6.dp))
             .padding(horizontal = 9.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(7.dp)
@@ -585,9 +528,13 @@ private fun PreviewTimeRow(
     station: String,
     planned: String,
     actual: String,
-    platform: String
+    platform: String,
+    realtimeAvailable: Boolean,
+    cancelled: Boolean,
+    replacementBus: Boolean
 ) {
-    val delay = delayMinutes(planned, actual)
+    val difference = delayMinutes(planned, actual)
+    val timeColor = realtimeColor(realtimeAvailable, cancelled, difference)
 
     Row(
         Modifier.fillMaxWidth(),
@@ -608,80 +555,60 @@ private fun PreviewTimeRow(
                 maxLines = 2
             )
 
-            if (platform.isNotBlank()) {
-                Text(
-                    if (isBusPlatform(platform)) {
-                        "Busstg. ${platform.removePrefix("Busstg.").trim()}"
-                    } else {
-                        "Gleis $platform"
-                    },
-                    color = TextMuted,
-                    fontSize = 10.sp
-                )
+            val shownPlatform = platformLabel(platform, replacementBus)
+            if (shownPlatform.isNotBlank()) {
+                Text(shownPlatform, color = TextMuted, fontSize = 10.sp)
             }
         }
 
-        Text(
-            planned.ifBlank { "?" },
-            color = TextMuted,
-            fontSize = 11.sp
-        )
-
+        Text(planned.ifBlank { "?" }, color = TextMuted, fontSize = 11.sp)
         Spacer(Modifier.width(7.dp))
 
         Text(
             actual.ifBlank { "?" },
-            color = when {
-                delay == null -> TextMain
-                delay > 0 -> Bad
-                delay < 0 -> Good
-                else -> Good
-            },
+            color = timeColor,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold
         )
 
-        if (delay != null && delay != 0) {
+        if (realtimeAvailable && !cancelled && difference != null) {
             Spacer(Modifier.width(5.dp))
-            Text(
-                if (delay > 0) "+${delay}′" else "${delay}′",
-                color = if (delay > 0) Bad else Good,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold
-            )
-        } else if (delay == 0) {
-            Spacer(Modifier.width(4.dp))
-            Text(
-                "✓",
-                color = Good,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
+            if (difference > 0) {
+                Text("+${difference}′", color = Bad, fontSize = 11.sp)
+            } else {
+                Text("✓", color = Good, fontSize = 12.sp)
+            }
         }
     }
 }
 
-private fun isBusPlatform(value: String): Boolean {
-    return value.contains("bus", ignoreCase = true) ||
-        value.contains("busstg", ignoreCase = true) ||
-        value.contains("bussteig", ignoreCase = true)
+private fun realtimeColor(
+    realtimeAvailable: Boolean,
+    cancelled: Boolean,
+    difference: Int?
+): Color {
+    return when {
+        cancelled -> Bad
+        !realtimeAvailable -> TextMain
+        difference != null && difference > 0 -> Bad
+        else -> Good
+    }
 }
 
-private fun isReplacementBus(leg: TransitLeg): Boolean {
-    if (!leg.mode.equals("BUS", ignoreCase = true)) {
-        return false
+private fun platformLabel(platform: String, replacementBus: Boolean): String {
+    if (platform.isBlank()) return ""
+
+    if (replacementBus || platform.contains("bus", ignoreCase = true)) {
+        val number = platform
+            .replace("Bussteig", "", ignoreCase = true)
+            .replace("Busstg.", "", ignoreCase = true)
+            .replace("Busstg", "", ignoreCase = true)
+            .trim()
+
+        return if (number.isBlank()) "Bussteig" else "Busstg. $number"
     }
 
-    val details = listOf(
-        leg.line,
-        leg.headsign,
-        leg.routeId
-    ).joinToString(" ").lowercase()
-
-    return details.contains("sev") ||
-        details.contains("schienenersatz") ||
-        details.contains("replacement bus") ||
-        details.contains("ersatzverkehr")
+    return "Gleis $platform"
 }
 
 @Composable
@@ -697,8 +624,8 @@ private fun TimelineLeg(leg: TransitLeg) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isReplacementBus(leg)) {
-                SevBadge(leg.line)
+            if (leg.isReplacementBus) {
+                SevBadge(leg.displayLine)
             } else {
                 Text(
                     leg.line,
@@ -732,7 +659,9 @@ private fun TimelineLeg(leg: TransitLeg) {
             actual = leg.departure,
             platform = leg.departurePlatform,
             label = "Abfahrt",
-            cancelled = leg.cancelled
+            realtimeAvailable = leg.realtimeAvailable,
+            cancelled = leg.cancelled,
+            replacementBus = leg.isReplacementBus
         )
 
         Box(
@@ -749,7 +678,9 @@ private fun TimelineLeg(leg: TransitLeg) {
             actual = leg.arrival,
             platform = leg.arrivalPlatform,
             label = "Ankunft",
-            cancelled = leg.cancelled
+            realtimeAvailable = leg.realtimeAvailable,
+            cancelled = leg.cancelled,
+            replacementBus = leg.isReplacementBus
         )
 
         if (leg.headsign.isNotBlank()) {
@@ -770,9 +701,11 @@ private fun StopTimelineRow(
     actual: String,
     platform: String,
     label: String,
-    cancelled: Boolean
+    realtimeAvailable: Boolean,
+    cancelled: Boolean,
+    replacementBus: Boolean
 ) {
-    val delay = delayMinutes(planned, actual)
+    val difference = delayMinutes(planned, actual)
 
     Row(
         Modifier.fillMaxWidth(),
@@ -796,11 +729,7 @@ private fun StopTimelineRow(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
-            Text(
-                label,
-                color = TextMuted,
-                fontSize = 10.sp
-            )
+            Text(label, color = TextMuted, fontSize = 10.sp)
         }
 
         Column(horizontalAlignment = Alignment.End) {
@@ -808,51 +737,31 @@ private fun StopTimelineRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(7.dp)
             ) {
-                Text(
-                    planned.ifBlank { "?" },
-                    color = TextMuted,
-                    fontSize = 12.sp
-                )
-
+                Text(planned.ifBlank { "?" }, color = TextMuted, fontSize = 12.sp)
                 Text(
                     actual.ifBlank { "?" },
-                    color = when {
-                        delay == null -> TextMain
-                        delay > 0 -> Bad
-                        else -> Good
-                    },
+                    color = realtimeColor(realtimeAvailable, cancelled, difference),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
-
-            Text(
-                "Plan       Echtzeit",
-                color = TextMuted,
-                fontSize = 9.sp
-            )
+            Text("Plan       Echtzeit", color = TextMuted, fontSize = 9.sp)
         }
 
         Spacer(Modifier.width(9.dp))
 
-        if (platform.isNotBlank()) {
+        val shownPlatform = platformLabel(platform, replacementBus)
+        if (shownPlatform.isNotBlank()) {
             Surface(
                 color = Color(0xFF123E70),
                 shape = RoundedCornerShape(3.dp)
             ) {
                 Text(
-                    if (isBusPlatform(platform)) {
-                        "Busstg. ${platform.removePrefix("Busstg.").trim()}"
-                    } else {
-                        platform
-                    },
+                    shownPlatform,
                     color = Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(
-                        horizontal = 8.dp,
-                        vertical = 5.dp
-                    )
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                 )
             }
         } else {
@@ -861,15 +770,10 @@ private fun StopTimelineRow(
     }
 }
 
-private fun delayMinutes(
-    planned: String,
-    actual: String
-): Int? {
+private fun delayMinutes(planned: String, actual: String): Int? {
     if (
-        planned.isBlank() ||
-        actual.isBlank() ||
-        planned == "?" ||
-        actual == "?"
+        planned.isBlank() || actual.isBlank() ||
+        planned == "?" || actual == "?"
     ) return null
 
     return try {
@@ -910,11 +814,8 @@ private fun rankStations(
                 name != normalizedQuery.removeSuffix(" hbf")
         }
         .sortedWith(
-            compareBy<TransitPlace> {
-                stationPriority(it.name)
-            }.thenBy {
-                it.name.lowercase()
-            }
+            compareBy<TransitPlace> { stationPriority(it.name) }
+                .thenBy { it.name.lowercase() }
         )
 }
 
@@ -922,13 +823,10 @@ private fun stationPriority(name: String): Int {
     val value = name.lowercase()
 
     return when {
-        value.contains("hauptbahnhof") ||
-            value.contains("hbf") -> 0
+        value.contains("hauptbahnhof") || value.contains("hbf") -> 0
         value.contains("bahnhof") -> 1
-        value.contains("s-bahn") ||
-            value.contains("s bahn") -> 3
-        value.contains("u-bahn") ||
-            value.contains("schwebebahn") -> 4
+        value.contains("s-bahn") || value.contains("s bahn") -> 3
+        value.contains("u-bahn") || value.contains("schwebebahn") -> 4
         value.contains("bus") ||
             value.contains("straße") ||
             value.contains("str.") ||
