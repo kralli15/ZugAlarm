@@ -60,26 +60,61 @@ fun ZugAlarmApp() {
         )
     }
 
-    MaterialTheme(colorScheme = lightColorScheme(primary = Navy, secondary = Blue, background = Pale, surface = Color.White)) {
+    MaterialTheme(
+        colorScheme = lightColorScheme(
+            primary = Navy,
+            secondary = Blue,
+            background = Pale,
+            surface = Color.White
+        )
+    ) {
         Scaffold(
             containerColor = Pale,
             topBar = {
-                Column(Modifier.fillMaxWidth().background(Navy).padding(horizontal = 18.dp, vertical = 13.dp)) {
-                    Text("ZugAlarm", color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Bold)
-                    Text("Dein persönlicher Streckenagent", color = Color.White.copy(alpha = .86f), fontSize = 12.sp)
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(Navy)
+                        .padding(horizontal = 18.dp, vertical = 13.dp)
+                ) {
+                    Text(
+                        "ZugAlarm",
+                        color = Color.White,
+                        fontSize = 25.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Dein persönlicher Streckenagent",
+                        color = Color.White.copy(alpha = .86f),
+                        fontSize = 12.sp
+                    )
                 }
             },
             bottomBar = {
                 NavigationBar(containerColor = Color.White) {
-                    NavigationBarItem(selected = selectedTab == 0, onClick = { selectedTab = 0 },
-                        icon = { Icon(Icons.Default.Train, contentDescription = null) }, label = { Text("Meine Reise") })
-                    NavigationBarItem(selected = selectedTab == 1, onClick = { selectedTab = 1 },
-                        icon = { Icon(Icons.Default.NotificationsActive, contentDescription = null) }, label = { Text("Meldungen") })
+                    NavigationBarItem(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        icon = { Icon(Icons.Default.Train, contentDescription = null) },
+                        label = { Text("Meine Reise") }
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        icon = { Icon(Icons.Default.NotificationsActive, contentDescription = null) },
+                        label = { Text("Meldungen") }
+                    )
                 }
             },
             floatingActionButton = {
-                if (selectedTab == 0) FloatingActionButton(onClick = { showAdd = true }, containerColor = Blue, contentColor = Color.White) {
-                    Icon(Icons.Default.Add, contentDescription = "Zug hinzufügen")
+                if (selectedTab == 0) {
+                    FloatingActionButton(
+                        onClick = { showAdd = true },
+                        containerColor = Blue,
+                        contentColor = Color.White
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Zug hinzufügen")
+                    }
                 }
             }
         ) { padding ->
@@ -90,36 +125,92 @@ fun ZugAlarmApp() {
                     verticalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
                     item {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Column {
-                                Text("Meine Reisekette", color = Navy, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                                Text("Wuppertal Hbf  →  Bonn Hbf", color = Color.DarkGray, fontSize = 12.sp)
+                                Text(
+                                    "Meine Reisekette",
+                                    color = Navy,
+                                    fontSize = 19.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "Wuppertal Hbf  →  Bonn Hbf",
+                                    color = Color.DarkGray,
+                                    fontSize = 12.sp
+                                )
                             }
-                            Surface(color = Color(0xFFE5F2E9), shape = RoundedCornerShape(20.dp)) {
-                                Text("Überwachung aktiv", color = Green, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp))
+                            Surface(
+                                color = Color(0xFFE5F2E9),
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                Text(
+                                    "Überwachung aktiv",
+                                    color = Green,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
+                                )
                             }
                         }
                     }
-                    items(legs.size) { index -> CompactLegCard(index + 1, legs[index]) }
+
+                    items(legs.size) { index ->
+                        CompactLegCard(index + 1, legs[index])
+                    }
+
                     item {
-                        Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(10.dp)) {
-                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Column(
+                                Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
                                 Text("Anschlusskontrolle", color = Navy, fontWeight = FontWeight.Bold)
-                                Text("ZugAlarm vergleicht die prognostizierte Ankunft mit der nächsten Abfahrt. Bei gefährdeten Anschlüssen soll hier eine Alternative erscheinen.", color = Color.DarkGray, fontSize = 12.sp)
+                                Text(
+                                    "ZugAlarm vergleicht die prognostizierte Ankunft mit der nächsten Abfahrt. Bei gefährdeten Anschlüssen soll hier eine Alternative erscheinen.",
+                                    color = Color.DarkGray,
+                                    fontSize = 12.sp
+                                )
                             }
                         }
                     }
+
                     item {
-                        Text("Demoansicht: Zeiten und Gleise sind Beispieldaten. Live-Daten und automatische Push-Alarme sind noch nicht verbunden.", color = Color.Gray, fontSize = 11.sp)
+                        Text(
+                            "Demoansicht: Zeiten und Gleise sind Beispieldaten. Live-Daten und automatische Push-Alarme sind noch nicht verbunden.",
+                            color = Color.Gray,
+                            fontSize = 11.sp
+                        )
                     }
                 }
             } else {
-                Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Meldungen & Alternativen", color = Navy, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Column(
+                    Modifier.fillMaxSize().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        "Meldungen & Alternativen",
+                        color = Navy,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                     Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(
+                            Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             Text("Noch keine Live-Meldungen", color = Navy, fontWeight = FontWeight.Bold)
-                            Text("Nach Anbindung einer Echtzeit-Datenquelle erscheinen hier Verspätungen, Gleisänderungen, Zugausfälle und alternative Reiseketten.", fontSize = 13.sp, color = Color.DarkGray)
+                            Text(
+                                "Nach Anbindung einer Echtzeit-Datenquelle erscheinen hier Verspätungen, Gleisänderungen, Zugausfälle und alternative Reiseketten.",
+                                fontSize = 13.sp,
+                                color = Color.DarkGray
+                            )
                         }
                     }
                 }
@@ -130,7 +221,18 @@ fun ZugAlarmApp() {
             AddLegDialog(
                 onDismiss = { showAdd = false },
                 onAdd = { train, from, dep, fromTrack, to, arr, toTrack ->
-                    legs = legs + TrainLeg(train, from, fromTrack, dep, dep, to, toTrack, arr, arr, "Manuell hinzugefügt")
+                    legs = legs + TrainLeg(
+                        train,
+                        from,
+                        fromTrack,
+                        dep,
+                        dep,
+                        to,
+                        toTrack,
+                        arr,
+                        arr,
+                        "Manuell hinzugefügt"
+                    )
                     showAdd = false
                 }
             )
@@ -141,18 +243,40 @@ fun ZugAlarmApp() {
 @Composable
 fun CompactLegCard(number: Int, leg: TrainLeg) {
     val delayed = leg.plannedDeparture != leg.liveDeparture || leg.plannedArrival != leg.liveArrival
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(11.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 11.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("$number.  ${leg.train}  ·  ${leg.from} → ${leg.to}", color = Navy, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Text(if (delayed) "Abweichung" else "Planmäßig", color = if (delayed) Red else Green, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Column(
+            Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "$number.  ${leg.train}  ·  ${leg.from} → ${leg.to}",
+                    color = Navy,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+                Text(
+                    if (delayed) "Abweichung" else "Planmäßig",
+                    color = if (delayed) Red else Green,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 TimeBlock(
                     modifier = Modifier.weight(1f),
                     title = "ABFAHRT · GL. ${leg.fromTrack}",
@@ -175,11 +299,24 @@ fun CompactLegCard(number: Int, leg: TrainLeg) {
 }
 
 @Composable
-fun TimeBlock(modifier: Modifier, title: String, station: String, planned: String, live: String, delayed: Boolean) {
-    Column(modifier.background(Pale, RoundedCornerShape(8.dp)).padding(9.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+fun TimeBlock(
+    modifier: Modifier,
+    title: String,
+    station: String,
+    planned: String,
+    live: String,
+    delayed: Boolean
+) {
+    Column(
+        modifier.background(Pale, RoundedCornerShape(8.dp)).padding(9.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
         Text(title, color = Color.DarkGray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
         Text(station, color = Navy, fontSize = 10.sp, maxLines = 1)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
             Text(planned, color = Color.Gray, fontSize = 12.sp)
             Text("→", color = Color.Gray, fontSize = 10.sp)
             Text(live, color = if (delayed) Red else Green, fontSize = 17.sp, fontWeight = FontWeight.Bold)
@@ -206,25 +343,80 @@ fun AddLegDialog(
         title = { Text("Zugverbindung hinzufügen", color = Navy, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                OutlinedTextField(train, { train = it }, label = { Text("Zugnummer, z. B. RE 7") }, singleLine = true)
-                OutlinedTextField(from, { from = it }, label = { Text("Startbahnhof") }, singleLine = true)
+                OutlinedTextField(
+                    value = train,
+                    onValueChange = { train = it },
+                    label = { Text("Zugnummer, z. B. RE 7") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = from,
+                    onValueChange = { from = it },
+                    label = { Text("Startbahnhof") },
+                    singleLine = true
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedTextField(fromTrack, { fromTrack = it }, modifier = Modifier.weight(1f), label = { Text("Startgleis") }, singleLine = true)
-                    OutlinedTextField(departure, { departure = it }, modifier = Modifier.weight(1f), label = { Text("Planabfahrt") }, singleLine = true)
+                    OutlinedTextField(
+                        value = fromTrack,
+                        onValueChange = { fromTrack = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Startgleis") },
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = departure,
+                        onValueChange = { departure = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Planabfahrt") },
+                        singleLine = true
+                    )
                 }
-                OutlinedTextField(to, { to = it }, label = { Text("Zielbahnhof") }, singleLine = true)
+                OutlinedTextField(
+                    value = to,
+                    onValueChange = { to = it },
+                    label = { Text("Zielbahnhof") },
+                    singleLine = true
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedTextField(toTrack, { toTrack = it }, modifier = Modifier.weight(1f), label = { Text("Zielgleis") }, singleLine = true)
-                    OutlinedTextField(arrival, { arrival = it }, modifier = Modifier.weight(1f), label = { Text("Planankunft") }, singleLine = true)
+                    OutlinedTextField(
+                        value = toTrack,
+                        onValueChange = { toTrack = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Zielgleis") },
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = arrival,
+                        onValueChange = { arrival = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Planankunft") },
+                        singleLine = true
+                    )
                 }
             }
         },
         confirmButton = {
-            TextButton(enabled = train.isNotBlank() && from.isNotBlank() && to.isNotBlank(),
-                onClick = { onAdd(train.trim(), from.trim(), departure.ifBlank { "—" }, fromTrack.ifBlank { "—" }, to.trim(), arrival.ifBlank { "—" }, toTrack.ifBlank { "—" }) }) {
+            TextButton(
+                enabled = train.isNotBlank() && from.isNotBlank() && to.isNotBlank(),
+                onClick = {
+                    onAdd(
+                        train.trim(),
+                        from.trim(),
+                        departure.ifBlank { "—" },
+                        fromTrack.ifBlank { "—" },
+                        to.trim(),
+                        arrival.ifBlank { "—" },
+                        toTrack.ifBlank { "—" }
+                    )
+                }
+            ) {
                 Text("Hinzufügen")
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        }
     )
 }
