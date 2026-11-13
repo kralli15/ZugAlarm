@@ -195,8 +195,7 @@ LaunchedEffect(toText.text, toPlace) {
                                 fromSuggestions = emptyList()
                             }
                         )
-
-                        StationInput(
+StationInput(
     label = "Von",
     value = fromText,
     suggestions = fromSuggestions,
@@ -214,7 +213,8 @@ LaunchedEffect(toText.text, toPlace) {
         fromSuggestions = emptyList()
     }
 )
-                        StationInput(
+
+StationInput(
     label = "Nach",
     value = toText,
     suggestions = toSuggestions,
