@@ -197,19 +197,41 @@ LaunchedEffect(toText.text, toPlace) {
                         )
 
                         StationInput(
-                            label = "Nach",
-                            value = toText,
-                            suggestions = toSuggestions,
-                            onValueChange = {
-                                toText = it
-                                toPlace = null
-                            },
-                            onSelect = {
-                                toPlace = it
-                                toText = cleanStation(it.name)
-                                toSuggestions = emptyList()
-                            }
-                        )
+    label = "Von",
+    value = fromText,
+    suggestions = fromSuggestions,
+    onValueChange = {
+        fromText = it
+        fromPlace = null
+    },
+    onSelect = {
+        val name = cleanStation(it.name)
+        fromPlace = it
+        fromText = TextFieldValue(
+            text = name,
+            selection = TextRange(name.length)
+        )
+        fromSuggestions = emptyList()
+    }
+)
+                        StationInput(
+    label = "Nach",
+    value = toText,
+    suggestions = toSuggestions,
+    onValueChange = {
+        toText = it
+        toPlace = null
+    },
+    onSelect = {
+        val name = cleanStation(it.name)
+        toPlace = it
+        toText = TextFieldValue(
+            text = name,
+            selection = TextRange(name.length)
+        )
+        toSuggestions = emptyList()
+    }
+)
 
                         Button(
                             onClick = {
@@ -343,11 +365,11 @@ LaunchedEffect(toText.text, toPlace) {
 @Composable
 private fun StationInput(
     label: String,
-    value: String,
+    value: TextFieldValue,
     suggestions: List<TransitPlace>,
-    onValueChange: (String) -> Unit,
+    onValueChange: (TextFieldValue) -> Unit,
     onSelect: (TransitPlace) -> Unit
-) {
+){
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         OutlinedTextField(
             value = value,
