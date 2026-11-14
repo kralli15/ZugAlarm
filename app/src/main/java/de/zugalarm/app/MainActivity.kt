@@ -28,6 +28,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.clickable
 
 private val Background = Color(0xFF080D16)
 private val Panel = Color(0xFF111B2A)
@@ -59,6 +60,7 @@ fun ZugAlarmApp() {
     var toSuggestions by remember { mutableStateOf(emptyList<TransitPlace>()) }
     var connections by remember { mutableStateOf(emptyList<TransitConnection>()) }
     var selected by remember { mutableStateOf<TransitConnection?>(null) }
+    var selectedLeg by remember { mutableStateOf<TransitLeg?>(null) }
     var searching by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
