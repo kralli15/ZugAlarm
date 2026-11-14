@@ -921,7 +921,21 @@ private fun TrainDetail(
                 .height(28.dp)
                 .background(Accent)
         )
+leg.intermediateStops.forEach { stop ->
+    IntermediateStopRow(
+        stop = stop,
+        realtimeAvailable = leg.realtimeAvailable,
+        replacementBus = leg.isReplacementBus
+    )
 
+    Box(
+        Modifier
+            .padding(start = 5.dp)
+            .width(2.dp)
+            .height(20.dp)
+            .background(Accent)
+    )
+}
         StopTimelineRow(
             station = leg.to,
             planned = leg.scheduledArrival,
@@ -1042,7 +1056,70 @@ private fun StopTimelineRow(
         }
     }
 }
+@Composable
+private fun IntermediateStopRow(
+    stop: TransitStop,
+    realtimeAvailable: Boolean,
+    replacementBus: Boolean
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier
+                    .size(10.dp)
+                    .background(Accent, RoundedCornerShape(50))
+            )
 
+            Spacer(Modifier.width(12.dp))
+
+            Text(
+                cleanStation(stop.name),
+                color = TextMain,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 22.dp, top = 5.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text("Ankunft", color = TextMuted, fontSize = 10.sp)
+                Text(
+                    "${stop.scheduledArrival}   ${stop.arrival}",
+                    color = if (realtimeAvailable) Good else TextMain,
+                    fontSize = 12.sp
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text("Abfahrt", color = TextMuted, fontSize = 10.sp)
+                Text(
+                    "${stop.scheduledDeparture}   ${stop.departure}",
+                    color = if (realtimeAvailable) Good else TextMain,
+                    fontSize = 12.sp
+                )
+            }
+
+            if (stop.platform.isNotBlank()) {
+                Text(
+                    platformLabel(stop.platform, replacementBus),
+                    color = TextMuted,
+                    fontSize = 10.sp
+                )
+            }
+        }
+    }
+}
 private fun delayMinutes(
     planned: String,
     actual: String
