@@ -33,6 +33,7 @@ data class TransitStop(
     val scheduledArrival: String,
     val scheduledDeparture: String,
     val platform: String
+    val cancelled: Boolean = false
 )
 
 data class TransitLeg(
@@ -192,6 +193,7 @@ val intermediateStops = (0 until intermediateStopsJson.length())
                 stop.optString("scheduledDeparture")
             ),
             platform = platformName(stop)
+            cancelled = stop.optBoolean("cancelled", false)
         )
     }
 
