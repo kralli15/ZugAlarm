@@ -74,7 +74,10 @@ fun ZugAlarmApp() {
             } else {
                 delay(400)
                 fromSuggestions = try {
-                    rankStations(TransitousClient.searchPlaces(query), query).take(8)
+                    rankStations(
+                        TransitousClient.searchPlaces(query),
+                        query
+                    ).take(8)
                 } catch (_: Exception) {
                     emptyList()
                 }
@@ -92,7 +95,10 @@ fun ZugAlarmApp() {
             } else {
                 delay(400)
                 toSuggestions = try {
-                    rankStations(TransitousClient.searchPlaces(query), query).take(8)
+                    rankStations(
+                        TransitousClient.searchPlaces(query),
+                        query
+                    ).take(8)
                 } catch (_: Exception) {
                     emptyList()
                 }
@@ -115,6 +121,7 @@ fun ZugAlarmApp() {
                         dateTime = null,
                         arriveBy = false
                     )
+
                     if (connections.isEmpty()) {
                         error = "Keine Verbindung gefunden."
                     }
@@ -128,11 +135,11 @@ fun ZugAlarmApp() {
     }
 
     BackHandler(enabled = selectedLeg != null || selected != null) {
-    if (selectedLeg != null) {
-        selectedLeg = null
-    } else {
-        selected = null
-    }
+        if (selectedLeg != null) {
+            selectedLeg = null
+        } else {
+            selected = null
+        }
     }
 
     MaterialTheme(
@@ -238,6 +245,7 @@ fun ZugAlarmApp() {
                                 toSuggestions = emptyList()
                                 connections = emptyList()
                                 selected = null
+                                selectedLeg = null
                                 error = null
                                 searching = true
                             },
@@ -247,16 +255,28 @@ fun ZugAlarmApp() {
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Icon(Icons.Default.Search, contentDescription = null)
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null
+                            )
                             Spacer(Modifier.width(8.dp))
-                            Text(if (searching) "Suche läuft …" else "Verbindungen suchen")
+                            Text(
+                                if (searching) {
+                                    "Suche läuft …"
+                                } else {
+                                    "Verbindungen suchen"
+                                }
+                            )
                         }
                     }
                 }
 
                 if (searching) {
                     item {
-                        Text("Verbindungen werden gesucht …", color = TextMuted)
+                        Text(
+                            "Verbindungen werden gesucht …",
+                            color = TextMuted
+                        )
                     }
                 }
 
@@ -265,8 +285,11 @@ fun ZugAlarmApp() {
                         Text(error!!, color = Bad, fontSize = 13.sp)
                     }
                 }
-
-                if (connections.isNotEmpty() && selected == null) {
+                                if (
+                    connections.isNotEmpty() &&
+                    selected == null &&
+                    selectedLeg == null
+                ) {
                     item {
                         Text(
                             "GEFUNDENE VERBINDUNGEN",
@@ -278,69 +301,77 @@ fun ZugAlarmApp() {
 
                     items(connections) { connection ->
                         ConnectionCard(
-    connection = connection,
-    onClick = { selected = connection },
-    onLegClick = { selectedLeg = it }
-)
+                            connection = connection,
+                            onClick = { selected = connection },
+                            onLegClick = { selectedLeg = it }
+                        )
                     }
                 }
-selectedLeg?.let { leg ->
-    item {
-        TrainDetail(leg) {
-            selectedLeg = null
-        }
-    }
-}
-                selected?.let { connection ->
+
+                if (selectedLeg != null) {
                     item {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        TrainDetail(selectedLeg!!) {
+                            selectedLeg = null
+                        }
+                    }
+                }
+
+                if (selectedLeg == null) {
+                    selected?.let { connection ->
+                        item {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "DEINE REISE",
+                                    color = TextMuted,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                TextButton(
+                                    onClick = { selected = null }
+                                ) {
+                                    Text("Zurück")
+                                }
+                            }
+
                             Text(
-                                "DEINE REISE",
-                                color = TextMuted,
-                                fontSize = 11.sp,
+                                "${cleanStation(connection.from)} nach ${cleanStation(connection.to)}",
+                                color = TextMain,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            TextButton(onClick = { selected = null }) {
-                                Text("Zurück")
+
+                            Text(
+                                "${connection.departure} bis ${connection.arrival} · ${connection.duration}",
+                                color = TextMuted,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        items(connection.legs) { leg ->
+                            TimelineLeg(leg) {
+                                selectedLeg = leg
                             }
                         }
 
-                        Text(
-                            "${cleanStation(connection.from)} nach ${cleanStation(connection.to)}",
-                            color = TextMain,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Text(
-                            "${connection.departure} bis ${connection.arrival} · ${connection.duration}",
-                            color = TextMuted,
-                            fontSize = 12.sp
-                        )
-                    }
-
-                    items(connection.legs) { leg ->
-                        TimelineLeg(leg) {
-    selectedLeg = leg
+                        item {
+                            Text(
+                                "Die Haltestellen und Abfahrtsorte entsprechen den verfügbaren Fahrplandaten. Eine GPS-Position des Zuges wird nicht geliefert.",
+                                color = TextMuted,
+                                fontSize = 11.sp
+                            )
                         }
-                    }
-
-                    item {
-                        Text(
-                            "Die Haltestellen und Abfahrtsorte entsprechen den verfügbaren Fahrplandaten. Eine GPS-Position des Zuges wird nicht geliefert.",
-                            color = TextMuted,
-                            fontSize = 11.sp
-                        )
                     }
                 }
 
                 if (
                     connections.isEmpty() &&
                     selected == null &&
+                    selectedLeg == null &&
                     error == null &&
                     !searching
                 ) {
@@ -373,9 +404,13 @@ private fun StationInput(
             label = { Text(label) },
             singleLine = true,
             shape = RoundedCornerShape(10.dp),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Search
+            ),
             keyboardActions = KeyboardActions(
-                onSearch = { suggestions.firstOrNull()?.let(onSelect) }
+                onSearch = {
+                    suggestions.firstOrNull()?.let(onSelect)
+                }
             ),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = TextMain,
@@ -392,7 +427,10 @@ private fun StationInput(
             TextButton(
                 onClick = { onSelect(place) },
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                contentPadding = PaddingValues(
+                    horizontal = 10.dp,
+                    vertical = 2.dp
+                )
             ) {
                 Text(
                     cleanStation(place.name),
@@ -410,7 +448,7 @@ private fun ConnectionCard(
     connection: TransitConnection,
     onClick: () -> Unit,
     onLegClick: (TransitLeg) -> Unit
-){
+) {
     Surface(
         onClick = onClick,
         color = Panel,
@@ -437,18 +475,22 @@ private fun ConnectionCard(
 
             connection.legs.forEachIndexed { index, leg ->
                 if (leg.isReplacementBus) {
-    SevBadge(
-        leg.displayLine,
-        Modifier.clickable { onLegClick(leg) }
-    )
-} else {
-    Text(
-        trainLabel(leg),
-        color = Accent,
-        fontSize = 14.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.clickable { onLegClick(leg) }
-    )
+                    SevBadge(
+                        leg.displayLine,
+                        Modifier.clickable {
+                            onLegClick(leg)
+                        }
+                    )
+                } else {
+                    Text(
+                        trainLabel(leg),
+                        color = Accent,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable {
+                            onLegClick(leg)
+                        }
+                    )
                 }
 
                 PreviewTimeRow(
@@ -493,11 +535,13 @@ private fun SevBadge(
         .replace("SEV", "", ignoreCase = true)
         .trim()
         .removePrefix("Bus ")
-        .let { if (it.isBlank()) "Bus" else "Bus $it" }
+        .let {
+            if (it.isBlank()) "Bus" else "Bus $it"
+        }
 
     Row(
         modifier = modifier
-    .background(SevMagenta, RoundedCornerShape(6.dp))
+            .background(SevMagenta, RoundedCornerShape(6.dp))
             .padding(horizontal = 9.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(7.dp)
@@ -517,7 +561,7 @@ private fun SevBadge(
         )
 
         Box(
-            modifier = modifier
+            modifier = Modifier
                 .size(23.dp)
                 .background(BusOrange, RoundedCornerShape(50)),
             contentAlignment = Alignment.Center
@@ -558,7 +602,11 @@ private fun PreviewTimeRow(
     replacementBus: Boolean
 ) {
     val difference = delayMinutes(planned, actual)
-    val timeColor = realtimeColor(realtimeAvailable, cancelled, difference)
+    val timeColor = realtimeColor(
+        realtimeAvailable,
+        cancelled,
+        difference
+    )
 
     Row(
         Modifier.fillMaxWidth(),
@@ -579,13 +627,26 @@ private fun PreviewTimeRow(
                 maxLines = 2
             )
 
-            val shownPlatform = platformLabel(platform, replacementBus)
+            val shownPlatform = platformLabel(
+                platform,
+                replacementBus
+            )
+
             if (shownPlatform.isNotBlank()) {
-                Text(shownPlatform, color = TextMuted, fontSize = 10.sp)
+                Text(
+                    shownPlatform,
+                    color = TextMuted,
+                    fontSize = 10.sp
+                )
             }
         }
 
-        Text(planned.ifBlank { "?" }, color = TextMuted, fontSize = 11.sp)
+        Text(
+            planned.ifBlank { "?" },
+            color = TextMuted,
+            fontSize = 11.sp
+        )
+
         Spacer(Modifier.width(7.dp))
 
         Text(
@@ -595,12 +656,25 @@ private fun PreviewTimeRow(
             fontWeight = FontWeight.Bold
         )
 
-        if (realtimeAvailable && !cancelled && difference != null) {
+        if (
+            realtimeAvailable &&
+            !cancelled &&
+            difference != null
+        ) {
             Spacer(Modifier.width(5.dp))
+
             if (difference > 0) {
-                Text("+${difference}′", color = Bad, fontSize = 11.sp)
+                Text(
+                    "+${difference}′",
+                    color = Bad,
+                    fontSize = 11.sp
+                )
             } else {
-                Text("✓", color = Good, fontSize = 12.sp)
+                Text(
+                    "✓",
+                    color = Good,
+                    fontSize = 12.sp
+                )
             }
         }
     }
@@ -619,17 +693,27 @@ private fun realtimeColor(
     }
 }
 
-private fun platformLabel(platform: String, replacementBus: Boolean): String {
+private fun platformLabel(
+    platform: String,
+    replacementBus: Boolean
+): String {
     if (platform.isBlank()) return ""
 
-    if (replacementBus || platform.contains("bus", ignoreCase = true)) {
+    if (
+        replacementBus ||
+        platform.contains("bus", ignoreCase = true)
+    ) {
         val number = platform
             .replace("Bussteig", "", ignoreCase = true)
             .replace("Busstg.", "", ignoreCase = true)
             .replace("Busstg", "", ignoreCase = true)
             .trim()
 
-        return if (number.isBlank()) "Bussteig" else "Busstg. $number"
+        return if (number.isBlank()) {
+            "Bussteig"
+        } else {
+            "Busstg. $number"
+        }
     }
 
     return "Gleis $platform"
@@ -640,16 +724,6 @@ private fun TimelineLeg(
     leg: TransitLeg,
     onLegClick: () -> Unit
 ) {
-    val departureDelay = delayMinutes(
-        leg.scheduledDeparture,
-        leg.departure
-    )
-
-    val arrivalDelay = delayMinutes(
-        leg.scheduledArrival,
-        leg.arrival
-    )
-
     Column(
         Modifier
             .fillMaxWidth()
@@ -660,21 +734,23 @@ private fun TimelineLeg(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
-        ) { if (leg.isReplacementBus) {
-    SevBadge(
-        leg.displayLine,
-        Modifier.clickable(onClick = onLegClick)
-    )
-} else {
-    Text(
-        trainLabel(leg),
-        color = Accent,
-        fontSize = 16.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.clickable(onClick = onLegClick)
-    )
-        }
-        
+        ) {
+            if (leg.isReplacementBus) {
+                SevBadge(
+                    leg.displayLine,
+                    Modifier.clickable(onClick = onLegClick)
+                )
+            } else {
+                Text(
+                    trainLabel(leg),
+                    color = Accent,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable(
+                        onClick = onLegClick
+                    )
+                )
+            }
 
             Text(
                 when {
@@ -723,84 +799,6 @@ private fun TimelineLeg(
             cancelled = leg.cancelled,
             replacementBus = leg.isReplacementBus
         )
-
-        Spacer(Modifier.height(10.dp))
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Background, RoundedCornerShape(8.dp))
-                .padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            when {
-                leg.cancelled -> {
-                    Text(
-                        "Fahrt fällt aus",
-                        color = Bad,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                !leg.realtimeAvailable -> {
-                    Text(
-                        "Keine Echtzeitdaten verfügbar",
-                        color = TextMuted,
-                        fontSize = 12.sp
-                    )
-                }
-
-                departureDelay != null && departureDelay > 0 -> {
-                    Text(
-                        "Abfahrt: ${departureDelay} Minuten verspätet",
-                        color = Bad,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                arrivalDelay != null && arrivalDelay > 0 -> {
-                    Text(
-                        "Ankunft: ${arrivalDelay} Minuten verspätet",
-                        color = Bad,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                else -> {
-                    Text(
-                        "Aktuell pünktlich",
-                        color = Good,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            if (
-                departureDelay != null &&
-                arrivalDelay != null &&
-                departureDelay > 0 &&
-                arrivalDelay > 0 &&
-                departureDelay != arrivalDelay
-            ) {
-                Text(
-                    "Verspätung bei Ankunft: ${arrivalDelay} Minuten",
-                    color = TextMuted,
-                    fontSize = 11.sp
-                )
-            }
-
-            if (leg.headsign.isNotBlank()) {
-                Text(
-                    "Fahrtrichtung: ${leg.headsign}",
-                    color = TextMuted,
-                    fontSize = 11.sp
-                )
-            }
-        }
     }
 }
 @Composable
@@ -833,7 +831,11 @@ private fun TrainDetail(
         }
 
         Text(
-            if (leg.isReplacementBus) leg.displayLine else trainLabel(leg),
+            if (leg.isReplacementBus) {
+                leg.displayLine
+            } else {
+                trainLabel(leg)
+            },
             color = TextMain,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
@@ -900,7 +902,8 @@ private fun TrainDetail(
             fontSize = 11.sp
         )
     }
-}    
+}
+
 @Composable
 private fun StopTimelineRow(
     station: String,
@@ -936,7 +939,12 @@ private fun StopTimelineRow(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
-            Text(label, color = TextMuted, fontSize = 10.sp)
+
+            Text(
+                label,
+                color = TextMuted,
+                fontSize = 10.sp
+            )
         }
 
         Column(horizontalAlignment = Alignment.End) {
@@ -944,20 +952,38 @@ private fun StopTimelineRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(7.dp)
             ) {
-                Text(planned.ifBlank { "?" }, color = TextMuted, fontSize = 12.sp)
+                Text(
+                    planned.ifBlank { "?" },
+                    color = TextMuted,
+                    fontSize = 12.sp
+                )
+
                 Text(
                     actual.ifBlank { "?" },
-                    color = realtimeColor(realtimeAvailable, cancelled, difference),
+                    color = realtimeColor(
+                        realtimeAvailable,
+                        cancelled,
+                        difference
+                    ),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
-            Text("Plan       Echtzeit", color = TextMuted, fontSize = 9.sp)
+
+            Text(
+                "Plan       Echtzeit",
+                color = TextMuted,
+                fontSize = 9.sp
+            )
         }
 
         Spacer(Modifier.width(9.dp))
 
-        val shownPlatform = platformLabel(platform, replacementBus)
+        val shownPlatform = platformLabel(
+            platform,
+            replacementBus
+        )
+
         if (shownPlatform.isNotBlank()) {
             Surface(
                 color = Color(0xFF123E70),
@@ -968,7 +994,10 @@ private fun StopTimelineRow(
                     color = Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                    modifier = Modifier.padding(
+                        horizontal = 8.dp,
+                        vertical = 5.dp
+                    )
                 )
             }
         } else {
@@ -977,28 +1006,40 @@ private fun StopTimelineRow(
     }
 }
 
-private fun delayMinutes(planned: String, actual: String): Int? {
+private fun delayMinutes(
+    planned: String,
+    actual: String
+): Int? {
     if (
-        planned.isBlank() || actual.isBlank() ||
-        planned == "?" || actual == "?"
+        planned.isBlank() ||
+        actual.isBlank() ||
+        planned == "?" ||
+        actual == "?"
     ) return null
 
     return try {
         val p = planned.split(":")
         val a = actual.split(":")
+
         if (p.size != 2 || a.size != 2) return null
 
-        val plannedMinutes = p[0].toInt() * 60 + p[1].toInt()
-        val actualMinutes = a[0].toInt() * 60 + a[1].toInt()
+        val plannedMinutes =
+            p[0].toInt() * 60 + p[1].toInt()
+
+        val actualMinutes =
+            a[0].toInt() * 60 + a[1].toInt()
 
         var difference = actualMinutes - plannedMinutes
+
         if (difference < -720) difference += 1440
         if (difference > 720) difference -= 1440
+
         difference
     } catch (_: Exception) {
         null
     }
 }
+
 private fun cleanStation(name: String): String {
     return name
         .replace(
@@ -1021,12 +1062,16 @@ private fun rankStations(
         .distinctBy { it.id }
         .filter { place ->
             val name = place.name.trim().lowercase()
+
             name != normalizedQuery &&
                 name != normalizedQuery.removeSuffix(" hbf")
         }
         .sortedWith(
-            compareBy<TransitPlace> { stationPriority(it.name) }
-                .thenBy { it.name.lowercase() }
+            compareBy<TransitPlace> {
+                stationPriority(it.name)
+            }.thenBy {
+                it.name.lowercase()
+            }
         )
 }
 
@@ -1034,14 +1079,22 @@ private fun stationPriority(name: String): Int {
     val value = name.lowercase()
 
     return when {
-        value.contains("hauptbahnhof") || value.contains("hbf") -> 0
+        value.contains("hauptbahnhof") ||
+            value.contains("hbf") -> 0
+
         value.contains("bahnhof") -> 1
-        value.contains("s-bahn") || value.contains("s bahn") -> 3
-        value.contains("u-bahn") || value.contains("schwebebahn") -> 4
+
+        value.contains("s-bahn") ||
+            value.contains("s bahn") -> 3
+
+        value.contains("u-bahn") ||
+            value.contains("schwebebahn") -> 4
+
         value.contains("bus") ||
             value.contains("straße") ||
             value.contains("str.") ||
             value.contains("platz") -> 5
+
         else -> 2
     }
 }
