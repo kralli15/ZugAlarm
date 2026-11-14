@@ -277,9 +277,11 @@ fun ZugAlarmApp() {
                     }
 
                     items(connections) { connection ->
-                        ConnectionCard(connection) {
-                            selected = connection
-                        }
+                        ConnectionCard(
+    connection = connection,
+    onClick = { selected = connection },
+    onLegClick = { selectedLeg = it }
+)
                     }
                 }
 
