@@ -106,8 +106,8 @@ object TransitousClient {
         from: TransitPlace,
         to: TransitPlace,
         dateTime: String?,
-        arriveBy: Boolean,
-        onlyLocalTransport: Boolean = false
+                arriveBy: Boolean,
+        searchMode: SearchMode = SearchMode.ALL_TRAINS
     ): List<TransitConnection> = withContext(Dispatchers.IO) {
 
         val builder = HttpUrl.Builder()
@@ -234,10 +234,15 @@ object TransitousClient {
             if (legs.isEmpty()) {
                 return@mapNotNull null
             }
-
             if (
-                onlyLocalTransport &&
-                legs.any { isKnownLongDistance(it.mode) }
+                searchMode == SearchMode.DEUTSCHLANDTICKET &&
+                legs.any {
+                    isKnownLongDistance(
+                        it.mode,
+                        it.line,
+                        it.displayLine
+                    )
+                }
             ) {
                 return@mapNotNull null
             }
@@ -347,17 +352,23 @@ object TransitousClient {
         } ?: ""
     }
 
-    private fun isKnownLongDistance(mode: String): Boolean {
-        val normalized = mode.uppercase(Locale.ROOT)
+        private fun isKnownLongDistance(
+        mode: String,
+        line: String,
+        displayLine: String
+    ): Boolean {
+        val normalizedMode = mode.uppercase(Locale.ROOT)
+        val service = "$line $displayLine".uppercase(Locale.ROOT)
 
-        return normalized in setOf(
+        return normalizedMode in setOf(
             "LONG_DISTANCE",
             "HIGH_SPEED_RAIL",
             "INTERCITY",
             "INTERCITY_EXPRESS",
             "NIGHT_RAIL"
-        )
-    }
+        ) || Regex("\\b(ICE|IC|EC|ECE|EN|NJ|TGV|RJ|RJX|FLX)\\b")
+            .containsMatchIn(service)
+        }
 
     private fun get(url: String): String {
         val request = Request.Builder()
