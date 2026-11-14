@@ -631,7 +631,38 @@ private fun TimelineLeg(leg: TransitLeg) {
                     trainLabel(leg),
 color = Accent,
 fontSize = 16.sp,
-fontWeight = FontWeight.Bold
+
+          @Composable
+private fun TimelineLeg(leg: TransitLeg) {
+    val departureDelay = delayMinutes(
+        leg.scheduledDeparture,
+        leg.departure
+    )
+
+    val arrivalDelay = delayMinutes(
+        leg.scheduledArrival,
+        leg.arrival
+    )
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(Panel, RoundedCornerShape(14.dp))
+            .padding(14.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (leg.isReplacementBus) {
+                SevBadge(leg.displayLine)
+            } else {
+                Text(
+                    trainLabel(leg),
+                    color = Accent,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
@@ -683,181 +714,86 @@ fontWeight = FontWeight.Bold
             replacementBus = leg.isReplacementBus
         )
 
-      Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(10.dp))
 
-val departureDelay = delayMinutes(
-    leg.scheduledDeparture,
-    leg.departure
-)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Background, RoundedCornerShape(8.dp))
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            when {
+                leg.cancelled -> {
+                    Text(
+                        "Fahrt fällt aus",
+                        color = Bad,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
-val arrivalDelay = delayMinutes(
-    leg.scheduledArrival,
-    leg.arrival
-)
+                !leg.realtimeAvailable -> {
+                    Text(
+                        "Keine Echtzeitdaten verfügbar",
+                        color = TextMuted,
+                        fontSize = 12.sp
+                    )
+                }
 
-Column(
-    modifier = Modifier
-        .fillMaxWidth()
-        .background(
-            Background,
-            RoundedCornerShape(8.dp)
-        )
-        .padding(10.dp),
-    verticalArrangement = Arrangement.spacedBy(5.dp)
-) {
-    when {
-        leg.cancelled -> {
-            Text(
-                "Fahrt fällt aus",
-                color = Bad,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+                departureDelay != null && departureDelay > 0 -> {
+                    Text(
+                        "Abfahrt: ${departureDelay} Minuten verspätet",
+                        color = Bad,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
-        !leg.realtimeAvailable -> {
-            Text(
-                "Keine Echtzeitdaten verfügbar",
-                color = TextMuted,
-                fontSize = 12.sp
-            )
-        }
+                arrivalDelay != null && arrivalDelay > 0 -> {
+                    Text(
+                        "Ankunft: ${arrivalDelay} Minuten verspätet",
+                        color = Bad,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
-        departureDelay != null && departureDelay > 0 -> {
-            Text(
-                "Abfahrt: ${departureDelay} Minuten verspätet",
-                color = Bad,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+                else -> {
+                    Text(
+                        "Aktuell pünktlich",
+                        color = Good,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
 
-        arrivalDelay != null && arrivalDelay > 0 -> {
-            Text(
-                "Ankunft: ${arrivalDelay} Minuten verspätet",
-                color = Bad,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+            if (
+                departureDelay != null &&
+                arrivalDelay != null &&
+                departureDelay > 0 &&
+                arrivalDelay > 0 &&
+                departureDelay != arrivalDelay
+            ) {
+                Text(
+                    "Verspätung bei Ankunft: ${arrivalDelay} Minuten",
+                    color = TextMuted,
+                    fontSize = 11.sp
+                )
+            }
 
-        else -> {
-            Text(
-                "Aktuell pünktlich",
-                color = Good,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-
-    if (
-        departureDelay != null &&
-        arrivalDelay != null &&
-        departureDelay > 0 &&
-        arrivalDelay > 0 &&
-        departureDelay != arrivalDelay
-    ) {
-        Text(
-            "Verspätung bei Ankunft: ${arrivalDelay} Minuten",
-            color = TextMuted,
-            fontSize = 11.sp
-        )
-    }
-
-    Spacer(Modifier.height(10.dp))
-
-val departureDelay = delayMinutes(
-    leg.scheduledDeparture,
-    leg.departure
-)
-
-val arrivalDelay = delayMinutes(
-    leg.scheduledArrival,
-    leg.arrival
-)
-
-Column(
-    modifier = Modifier
-        .fillMaxWidth()
-        .background(
-            Background,
-            RoundedCornerShape(8.dp)
-        )
-        .padding(10.dp),
-    verticalArrangement = Arrangement.spacedBy(5.dp)
-) {
-    when {
-        leg.cancelled -> {
-            Text(
-                "Fahrt fällt aus",
-                color = Bad,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        !leg.realtimeAvailable -> {
-            Text(
-                "Keine Echtzeitdaten verfügbar",
-                color = TextMuted,
-                fontSize = 12.sp
-            )
-        }
-
-        departureDelay != null && departureDelay > 0 -> {
-            Text(
-                "Abfahrt: ${departureDelay} Minuten verspätet",
-                color = Bad,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        arrivalDelay != null && arrivalDelay > 0 -> {
-            Text(
-                "Ankunft: ${arrivalDelay} Minuten verspätet",
-                color = Bad,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        else -> {
-            Text(
-                "Aktuell pünktlich",
-                color = Good,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
+            if (leg.headsign.isNotBlank()) {
+                Text(
+                    "Fahrtrichtung: ${leg.headsign}",
+                    color = TextMuted,
+                    fontSize = 11.sp
+                )
+            }
         }
     }
-
-    if (
-        departureDelay != null &&
-        arrivalDelay != null &&
-        departureDelay > 0 &&
-        arrivalDelay > 0 &&
-        departureDelay != arrivalDelay
-    ) {
-        Text(
-            "Verspätung bei Ankunft: ${arrivalDelay} Minuten",
-            color = TextMuted,
-            fontSize = 11.sp
-        )
-    }
-
-    if (leg.headsign.isNotBlank()) {
-        Text(
-            "Fahrtrichtung: ${leg.headsign}",
-            color = TextMuted,
-            fontSize = 11.sp
-        )
-    }
-}
-    }
-}
-
+}          
+    
 @Composable
 private fun StopTimelineRow(
     station: String,
