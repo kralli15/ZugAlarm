@@ -63,6 +63,9 @@ fun ZugAlarmApp() {
     var selectedLeg by remember { mutableStateOf<TransitLeg?>(null) }
     var searching by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var searchMode by remember {
+    mutableStateOf(SearchMode.ALL_TRAINS)
+}
 
     LaunchedEffect(fromText.text, fromPlace) {
         if (fromPlace != null) {
@@ -199,6 +202,39 @@ fun ZugAlarmApp() {
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
+                        
+Text(
+    "VERKEHRSMITTEL",
+    color = TextMuted,
+    fontSize = 11.sp,
+    fontWeight = FontWeight.Bold
+)
+
+Row(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.spacedBy(8.dp)
+) {
+    FilterChip(
+        selected = searchMode == SearchMode.ALL_TRAINS,
+        onClick = {
+            searchMode = SearchMode.ALL_TRAINS
+        },
+        label = {
+            Text("Alle Züge")
+        }
+    )
+
+    FilterChip(
+        selected = searchMode == SearchMode.DEUTSCHLANDTICKET,
+        onClick = {
+            searchMode = SearchMode.DEUTSCHLANDTICKET
+        },
+        label = {
+            Text("Deutschlandticket")
+        }
+    )
+}
+
 
                         StationInput(
                             label = "Von",
