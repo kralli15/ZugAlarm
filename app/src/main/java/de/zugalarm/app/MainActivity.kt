@@ -517,7 +517,7 @@ private fun SevBadge(
         )
 
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .size(23.dp)
                 .background(BusOrange, RoundedCornerShape(50)),
             contentAlignment = Alignment.Center
@@ -636,7 +636,10 @@ private fun platformLabel(platform: String, replacementBus: Boolean): String {
 }
 
 @Composable
-private fun TimelineLeg(leg: TransitLeg) {
+private fun TimelineLeg(
+    leg: TransitLeg,
+    onLegClick: () -> Unit
+) {
     val departureDelay = delayMinutes(
         leg.scheduledDeparture,
         leg.departure
