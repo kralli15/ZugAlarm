@@ -130,6 +130,7 @@ object TransitousClient {
             .addQueryParameter("arriveBy", arriveBy.toString())
             .addQueryParameter("joinInterlinedLegs", "false")
             .addQueryParameter("realtimeMode", "REALTIME")
+            .addQueryParameter("withScheduledSkippedStops", "true")
 
         if (!dateTime.isNullOrBlank()) {
             builder.addQueryParameter("time", dateTime)
