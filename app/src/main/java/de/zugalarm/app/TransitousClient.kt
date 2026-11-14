@@ -32,8 +32,10 @@ data class TransitStop(
     val departure: String,
     val scheduledArrival: String,
     val scheduledDeparture: String,
-    val platform: String,
-    val cancelled: Boolean = false
+        val platform: String,
+    val cancelled: Boolean = false,
+    val pickupType: String = "",
+    val dropoffType: String = ""
 )
 
 data class TransitLeg(
@@ -192,8 +194,10 @@ val intermediateStops = (0 until intermediateStopsJson.length())
             scheduledDeparture = formatTime(
                 stop.optString("scheduledDeparture")
             ),
-            platform = platformName(stop),
-            cancelled = stop.optBoolean("cancelled", false)
+                        platform = platformName(stop),
+            cancelled = stop.optBoolean("cancelled", false),
+            pickupType = stop.optString("pickupType"),
+            dropoffType = stop.optString("dropoffType")
         )
     }
 
