@@ -14,6 +14,12 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
+enum class SearchMode {
+    ALL_TRAINS,
+    DEUTSCHLANDTICKET
+}
+
+
 data class TransitPlace(
     val id: String,
     val name: String,
