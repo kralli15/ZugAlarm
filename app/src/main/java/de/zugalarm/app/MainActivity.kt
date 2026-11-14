@@ -324,7 +324,9 @@ selectedLeg?.let { leg ->
                     }
 
                     items(connection.legs) { leg ->
-                        TimelineLeg(leg)
+                        TimelineLeg(leg) {
+    selectedLeg = leg
+                        }
                     }
 
                     item {
@@ -406,8 +408,9 @@ private fun StationInput(
 @Composable
 private fun ConnectionCard(
     connection: TransitConnection,
-    onClick: () -> Unit
-) {
+    onClick: () -> Unit,
+    onLegClick: (TransitLeg) -> Unit
+){
     Surface(
         onClick = onClick,
         color = Panel,
@@ -434,14 +437,18 @@ private fun ConnectionCard(
 
             connection.legs.forEachIndexed { index, leg ->
                 if (leg.isReplacementBus) {
-                    SevBadge(leg.displayLine)
-                } else {
-                    Text(
-                        trainLabel(leg),
-color = Accent,
-fontSize = 14.sp,
-fontWeight = FontWeight.Bold
-                    )
+    SevBadge(
+        leg.displayLine,
+        Modifier.clickable { onLegClick(leg) }
+    )
+} else {
+    Text(
+        trainLabel(leg),
+        color = Accent,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.clickable { onLegClick(leg) }
+    )
                 }
 
                 PreviewTimeRow(
@@ -477,7 +484,10 @@ fontWeight = FontWeight.Bold
     }
 }
 @Composable
-private fun SevBadge(line: String) {
+private fun SevBadge(
+    line: String,
+    modifier: Modifier = Modifier
+) {
     val serviceName = line
         .replace("Schienenersatzverkehr", "", ignoreCase = true)
         .replace("SEV", "", ignoreCase = true)
@@ -486,8 +496,8 @@ private fun SevBadge(line: String) {
         .let { if (it.isBlank()) "Bus" else "Bus $it" }
 
     Row(
-        modifier = Modifier
-            .background(SevMagenta, RoundedCornerShape(6.dp))
+        modifier = modifier
+    .background(SevMagenta, RoundedCornerShape(6.dp))
             .padding(horizontal = 9.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(7.dp)
