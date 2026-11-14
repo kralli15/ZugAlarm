@@ -803,7 +803,104 @@ private fun TimelineLeg(
         }
     }
 }
-    
+@Composable
+private fun TrainDetail(
+    leg: TransitLeg,
+    onBack: () -> Unit
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(Panel, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "ZUGDETAILS",
+                color = TextMuted,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            TextButton(onClick = onBack) {
+                Text("Schließen")
+            }
+        }
+
+        Text(
+            if (leg.isReplacementBus) leg.displayLine else trainLabel(leg),
+            color = TextMain,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            when {
+                leg.cancelled -> "Fahrt fällt aus"
+                leg.realtimeAvailable -> "Echtzeitdaten verfügbar"
+                else -> "Nur Fahrplandaten verfügbar"
+            },
+            color = when {
+                leg.cancelled -> Bad
+                leg.realtimeAvailable -> Good
+                else -> TextMuted
+            },
+            fontSize = 12.sp
+        )
+
+        HorizontalDivider(
+            color = TextMuted.copy(alpha = 0.2f)
+        )
+
+        Text(
+            "FAHRPLAN                         ECHTZEIT",
+            color = TextMuted,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        StopTimelineRow(
+            station = leg.from,
+            planned = leg.scheduledDeparture,
+            actual = leg.departure,
+            platform = leg.departurePlatform,
+            label = "Abfahrt",
+            realtimeAvailable = leg.realtimeAvailable,
+            cancelled = leg.cancelled,
+            replacementBus = leg.isReplacementBus
+        )
+
+        Box(
+            Modifier
+                .padding(start = 5.dp)
+                .width(2.dp)
+                .height(28.dp)
+                .background(Accent)
+        )
+
+        StopTimelineRow(
+            station = leg.to,
+            planned = leg.scheduledArrival,
+            actual = leg.arrival,
+            platform = leg.arrivalPlatform,
+            label = "Ankunft",
+            realtimeAvailable = leg.realtimeAvailable,
+            cancelled = leg.cancelled,
+            replacementBus = leg.isReplacementBus
+        )
+
+        Text(
+            "Für diesen Abschnitt liegen derzeit nur Start und Ziel vor. Zwischenhalte und eine GPS-Position werden nicht erfunden.",
+            color = TextMuted,
+            fontSize = 11.sp
+        )
+    }
+}    
 @Composable
 private fun StopTimelineRow(
     station: String,
@@ -902,9 +999,13 @@ private fun delayMinutes(planned: String, actual: String): Int? {
         null
     }
 }
-
 private fun cleanStation(name: String): String {
-    return name.replace("Hbf.", "Hbf").trim()
+    return name
+        .replace(
+            Regex("Hbf\\.?", RegexOption.IGNORE_CASE),
+            "Hbf"
+        )
+        .trim()
 }
 
 private fun rankStations(
