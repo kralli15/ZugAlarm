@@ -660,17 +660,21 @@ private fun TimelineLeg(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (leg.isReplacementBus) {
-                SevBadge(leg.displayLine)
-            } else {
-                Text(
-                    trainLabel(leg),
-                    color = Accent,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+        ) { if (leg.isReplacementBus) {
+    SevBadge(
+        leg.displayLine,
+        Modifier.clickable(onClick = onLegClick)
+    )
+} else {
+    Text(
+        trainLabel(leg),
+        color = Accent,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.clickable(onClick = onLegClick)
+    )
+        }
+        
 
             Text(
                 when {
