@@ -52,7 +52,7 @@ data class TransitLeg(
     val routeId: String,
     val headsign: String,
     val displayLine: String = line,
-    val isReplacementBus: Boolean = false
+    val isReplacementBus: Boolean = false,
     val intermediateStops: List<TransitStop> = emptyList()
 )
 
