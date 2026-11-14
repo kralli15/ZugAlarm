@@ -947,11 +947,7 @@ leg.intermediateStops.forEach { stop ->
             replacementBus = leg.isReplacementBus
         )
 
-        Text(
-            "Für diesen Abschnitt liegen derzeit nur Start und Ziel vor. Zwischenhalte und eine GPS-Position werden nicht erfunden.",
-            color = TextMuted,
-            fontSize = 11.sp
-        )
+        
     }
 }
 
