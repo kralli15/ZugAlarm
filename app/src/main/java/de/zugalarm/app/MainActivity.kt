@@ -119,11 +119,12 @@ fun ZugAlarmApp() {
                     error = "Bitte Start und Ziel auswählen."
                 } else {
                     connections = TransitousClient.searchConnections(
-                        from = start,
-                        to = end,
-                        dateTime = null,
-                        arriveBy = false
-                    )
+    from = start,
+    to = end,
+    dateTime = null,
+    arriveBy = false,
+    searchMode = searchMode
+)
 
                     if (connections.isEmpty()) {
                         error = "Keine Verbindung gefunden."
