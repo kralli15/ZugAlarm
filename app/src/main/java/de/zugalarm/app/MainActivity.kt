@@ -284,7 +284,13 @@ fun ZugAlarmApp() {
 )
                     }
                 }
-
+selectedLeg?.let { leg ->
+    item {
+        TrainDetail(leg) {
+            selectedLeg = null
+        }
+    }
+}
                 selected?.let { connection ->
                     item {
                         Row(
