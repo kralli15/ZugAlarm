@@ -1100,6 +1100,31 @@ private fun IntermediateStopRow(
                     fontWeight = FontWeight.Bold
                 )
             }
+                        if (
+                !stop.cancelled &&
+                stop.pickupType.equals("NOT_ALLOWED", true)
+            ) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "KEIN EINSTIEG",
+                    color = BusOrange,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            if (
+                !stop.cancelled &&
+                stop.dropoffType.equals("NOT_ALLOWED", true)
+            ) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "KEIN AUSSTIEG",
+                    color = BusOrange,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         Row(
