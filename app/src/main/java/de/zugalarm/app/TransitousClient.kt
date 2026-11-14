@@ -32,7 +32,7 @@ data class TransitStop(
     val departure: String,
     val scheduledArrival: String,
     val scheduledDeparture: String,
-    val platform: String
+    val platform: String,
     val cancelled: Boolean = false
 )
 
@@ -192,7 +192,7 @@ val intermediateStops = (0 until intermediateStopsJson.length())
             scheduledDeparture = formatTime(
                 stop.optString("scheduledDeparture")
             ),
-            platform = platformName(stop)
+            platform = platformName(stop),
             cancelled = stop.optBoolean("cancelled", false)
         )
     }
