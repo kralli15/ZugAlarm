@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
@@ -1058,6 +1059,10 @@ private fun IntermediateStopRow(
     realtimeAvailable: Boolean,
     replacementBus: Boolean
 ) {
+    val stopColor = if (stop.cancelled) Bad else TextMain
+    val timeColor = if (stop.cancelled) Bad
+        else if (realtimeAvailable) Good else TextMain
+
     Column(
         Modifier
             .fillMaxWidth()
@@ -1069,17 +1074,32 @@ private fun IntermediateStopRow(
             Box(
                 Modifier
                     .size(10.dp)
-                    .background(Accent, RoundedCornerShape(50))
+                    .background(
+                        if (stop.cancelled) Bad else Accent,
+                        RoundedCornerShape(50)
+                    )
             )
 
             Spacer(Modifier.width(12.dp))
 
             Text(
                 cleanStation(stop.name),
-                color = TextMain,
+                color = stopColor,
                 fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                textDecoration = if (stop.cancelled)
+                    TextDecoration.LineThrough else null
             )
+
+            if (stop.cancelled) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "ENTFÄLLT",
+                    color = Bad,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         Row(
@@ -1092,8 +1112,10 @@ private fun IntermediateStopRow(
                 Text("Ankunft", color = TextMuted, fontSize = 10.sp)
                 Text(
                     "${stop.scheduledArrival}   ${stop.arrival}",
-                    color = if (realtimeAvailable) Good else TextMain,
-                    fontSize = 12.sp
+                    color = timeColor,
+                    fontSize = 12.sp,
+                    textDecoration = if (stop.cancelled)
+                        TextDecoration.LineThrough else null
                 )
             }
 
@@ -1101,15 +1123,17 @@ private fun IntermediateStopRow(
                 Text("Abfahrt", color = TextMuted, fontSize = 10.sp)
                 Text(
                     "${stop.scheduledDeparture}   ${stop.departure}",
-                    color = if (realtimeAvailable) Good else TextMain,
-                    fontSize = 12.sp
+                    color = timeColor,
+                    fontSize = 12.sp,
+                    textDecoration = if (stop.cancelled)
+                        TextDecoration.LineThrough else null
                 )
             }
 
             if (stop.platform.isNotBlank()) {
                 Text(
                     platformLabel(stop.platform, replacementBus),
-                    color = TextMuted,
+                    color = if (stop.cancelled) Bad else TextMuted,
                     fontSize = 10.sp
                 )
             }
