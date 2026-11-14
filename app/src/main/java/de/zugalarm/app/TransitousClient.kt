@@ -26,6 +26,14 @@ data class TransitPlace(
     val latitude: Double,
     val longitude: Double
 )
+data class TransitStop(
+    val name: String,
+    val arrival: String,
+    val departure: String,
+    val scheduledArrival: String,
+    val scheduledDeparture: String,
+    val platform: String
+)
 
 data class TransitLeg(
     val line: String,
@@ -45,6 +53,7 @@ data class TransitLeg(
     val headsign: String,
     val displayLine: String = line,
     val isReplacementBus: Boolean = false
+    val intermediateStops: List<TransitStop> = emptyList()
 )
 
 data class TransitConnection(
@@ -163,6 +172,27 @@ object TransitousClient {
                 val route = leg.optJSONObject("route") ?: JSONObject()
                 val fromStop = leg.optJSONObject("from") ?: JSONObject()
                 val toStop = leg.optJSONObject("to") ?: JSONObject()
+                val intermediateStopsJson =
+    leg.optJSONArray("intermediateStops") ?: JSONArray()
+
+val intermediateStops = (0 until intermediateStopsJson.length())
+    .mapNotNull { stopIndex ->
+        val stop = intermediateStopsJson.optJSONObject(stopIndex)
+            ?: return@mapNotNull null
+
+        TransitStop(
+            name = stopName(stop),
+            arrival = formatTime(stop.optString("arrival")),
+            departure = formatTime(stop.optString("departure")),
+            scheduledArrival = formatTime(
+                stop.optString("scheduledArrival")
+            ),
+            scheduledDeparture = formatTime(
+                stop.optString("scheduledDeparture")
+            ),
+            platform = platformName(stop)
+        )
+    }
 
                 val line = leg.optString("displayName")
                     .takeIf { it.isNotBlank() && it != "null" }
@@ -227,7 +257,8 @@ object TransitousClient {
                     headsign = leg.optString("headsign"),
 
                     displayLine = displayLine,
-                    isReplacementBus = replacementBus
+isReplacementBus = replacementBus,
+intermediateStops = intermediateStops 
                 )
             }
 
