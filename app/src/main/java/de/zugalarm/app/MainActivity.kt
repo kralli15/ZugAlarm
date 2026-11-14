@@ -613,27 +613,6 @@ private fun platformLabel(platform: String, replacementBus: Boolean): String {
 
 @Composable
 private fun TimelineLeg(leg: TransitLeg) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(Panel, RoundedCornerShape(14.dp))
-            .padding(14.dp)
-    ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (leg.isReplacementBus) {
-                SevBadge(leg.displayLine)
-            } else {
-                Text(
-                    trainLabel(leg),
-color = Accent,
-fontSize = 16.sp,
-
-          @Composable
-private fun TimelineLeg(leg: TransitLeg) {
     val departureDelay = delayMinutes(
         leg.scheduledDeparture,
         leg.departure
@@ -792,7 +771,7 @@ private fun TimelineLeg(leg: TransitLeg) {
             }
         }
     }
-}          
+}
     
 @Composable
 private fun StopTimelineRow(
