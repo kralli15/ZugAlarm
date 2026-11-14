@@ -127,8 +127,12 @@ fun ZugAlarmApp() {
         }
     }
 
-    BackHandler(enabled = selected != null) {
+    BackHandler(enabled = selectedLeg != null || selected != null) {
+    if (selectedLeg != null) {
+        selectedLeg = null
+    } else {
         selected = null
+    }
     }
 
     MaterialTheme(
