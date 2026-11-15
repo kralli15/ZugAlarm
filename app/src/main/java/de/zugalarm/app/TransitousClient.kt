@@ -61,6 +61,7 @@ data class TransitLeg(
 
 data class TransitConnection(
     val label: String,
+        val itineraryId: String = "",
     val from: String,
     val to: String,
     val departure: String,
@@ -299,6 +300,7 @@ intermediateStops = intermediateStops
 
             TransitConnection(
                 label = label,
+                                itineraryId = journey.optString("id"),
                 from = firstPlace.optString("name").ifBlank { from.name },
                 to = lastPlace.optString("name").ifBlank { to.name },
                 departure = formatTime(
