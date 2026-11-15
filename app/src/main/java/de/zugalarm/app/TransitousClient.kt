@@ -36,7 +36,8 @@ data class TransitStop(
     val cancelled: Boolean = false,
         val pickupType: String = "",
     val dropoffType: String = "",
-    val stopId: String = ""
+        val stopId: String = "",
+    val isAdditional: Boolean = false
 )
 
 data class TransitLeg(
