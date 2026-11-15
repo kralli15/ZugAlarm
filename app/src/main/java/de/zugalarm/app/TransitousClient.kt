@@ -315,9 +315,31 @@ intermediateStops = intermediateStops
                 detail = label,
                 legs = legs
             )
-        }
+                }
     }
-        private fun isReplacementBus(
+
+    suspend fun refreshScheduledItinerary(
+        itineraryId: String
+    ): JSONObject = withContext(Dispatchers.IO) {
+        require(itineraryId.isNotBlank()) {
+            "Die Verbindungskennung fehlt."
+        }
+
+        val url = HttpUrl.Builder()
+            .scheme("https")
+            .host("api.transitous.org")
+            .addPathSegments("api/v6/refresh-itinerary")
+            .addQueryParameter("itineraryId", itineraryId)
+            .addQueryParameter("realtimeMode", "OFF")
+            .addQueryParameter("joinInterlinedLegs", "false")
+            .addQueryParameter("withScheduledSkippedStops", "true")
+            .addQueryParameter("language", "de")
+            .build()
+
+        JSONObject(get(url.toString()))
+    }
+
+    private fun isReplacementBus(
         mode: String,
         line: String,
         leg: JSONObject,
