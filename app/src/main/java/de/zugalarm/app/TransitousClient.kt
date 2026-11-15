@@ -59,6 +59,7 @@ data class TransitLeg(
     val displayLine: String = line,
     val isReplacementBus: Boolean = false,
     val intermediateStops: List<TransitStop> = emptyList()
+    val itineraryId: String = ""
 )
 
 data class TransitConnection(
