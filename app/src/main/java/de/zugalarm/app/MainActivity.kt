@@ -1100,6 +1100,15 @@ private fun IntermediateStopRow(
                     fontWeight = FontWeight.Bold
                 )
             }
+                        if (stop.isAdditional && !stop.cancelled) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "ZUSATZHALT",
+                    color = Good,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                        }
                         if (
                 !stop.cancelled &&
                 stop.pickupType.equals("NOT_ALLOWED", true)
