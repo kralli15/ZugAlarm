@@ -58,7 +58,7 @@ data class TransitLeg(
     val headsign: String,
     val displayLine: String = line,
     val isReplacementBus: Boolean = false,
-    val intermediateStops: List<TransitStop> = emptyList()
+    val intermediateStops: List<TransitStop> = emptyList(),
     val itineraryId: String = ""
 )
 
@@ -270,7 +270,8 @@ val intermediateStops = (0 until intermediateStopsJson.length())
 
                     displayLine = displayLine,
 isReplacementBus = replacementBus,
-intermediateStops = intermediateStops 
+                    intermediateStops = intermediateStops,
+itineraryId = journey.optString("id")
                 )
             }
 
