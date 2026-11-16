@@ -343,7 +343,50 @@ itineraryId = journey.optString("id")
 
         JSONObject(get(url.toString()))
     }
+suspend fun scheduledStopIdsForLeg(
+    itineraryId: String,
+    tripId: String
+): Set<String>? {
+    if (itineraryId.isBlank() || tripId.isBlank()) {
+        return null
+    }
 
+    val itinerary = refreshScheduledItinerary(itineraryId)
+    val legs = itinerary.optJSONArray("legs") ?: return null
+
+    val scheduledLeg = (0 until legs.length())
+        .mapNotNull { legs.optJSONObject(it) }
+        .firstOrNull {
+            it.optString("tripId") == tripId
+        } ?: return null
+
+    val stopIds = mutableSetOf<String>()
+
+    val from = scheduledLeg.optJSONObject("from")
+    val to = scheduledLeg.optJSONObject("to")
+
+    from?.optString("stopId")
+        ?.takeIf { it.isNotBlank() && it != "null" }
+        ?.let { stopIds.add(it) }
+
+    to?.optString("stopId")
+        ?.takeIf { it.isNotBlank() && it != "null" }
+        ?.let { stopIds.add(it) }
+
+    val stops = scheduledLeg.optJSONArray("intermediateStops")
+        ?: JSONArray()
+
+    for (index in 0 until stops.length()) {
+        val stop = stops.optJSONObject(index) ?: continue
+        val stopId = stop.optString("stopId")
+
+        if (stopId.isNotBlank() && stopId != "null") {
+            stopIds.add(stopId)
+        }
+    }
+
+    return stopIds.takeIf { it.isNotEmpty() }
+}
     private fun isReplacementBus(
         mode: String,
         line: String,
