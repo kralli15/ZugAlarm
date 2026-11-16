@@ -29,7 +29,7 @@ jobs:
         with:
           gradle-version: "8.9"
 
-        - name: APK bauen
+      - name: APK bauen
         run: gradle --no-daemon assembleDebug
 
       - name: Unit Tests ausführen
