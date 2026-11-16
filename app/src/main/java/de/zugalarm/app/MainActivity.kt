@@ -80,8 +80,10 @@ LaunchedEffect(selectedLeg?.itineraryId, selectedLeg?.tripId) {
             selectedLeg = leg.copy(
                 intermediateStops = leg.intermediateStops.map { stop ->
                     stop.copy(
-                        isAdditional = stop.stopId.isNotBlank() &&
-                            stop.stopId !in scheduledIds
+                        isAdditional = isAdditionalStop(
+    stop.stopId,
+    scheduledIds
+)
                     )
                 }
             )
