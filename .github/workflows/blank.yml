@@ -31,6 +31,9 @@ jobs:
 
       - name: APK bauen
         run: gradle --no-daemon assembleDebug
+           
+              - name: Unit Tests ausführen
+        run: gradle --no-daemon testDebugUnitTest
 
       - name: APK bereitstellen
         uses: actions/upload-artifact@v4
