@@ -98,6 +98,8 @@ LaunchedEffect(selectedLeg?.itineraryId, selectedLeg?.tripId) {
     var searchMode by remember {
     mutableStateOf(SearchMode.ALL_TRAINS)
 }
+    var searchDate by remember { mutableStateOf("") }
+var searchTime by remember { mutableStateOf("") }
 
     LaunchedEffect(fromText.text, fromPlace) {
         if (fromPlace != null) {
@@ -144,6 +146,22 @@ LaunchedEffect(selectedLeg?.itineraryId, selectedLeg?.tripId) {
     LaunchedEffect(searching) {
         if (searching) {
             try {
+                val requestedDateTime = if (
+    searchDate.isBlank() && searchTime.isBlank()
+) {
+    null
+} else {
+    require(
+        searchDate.isNotBlank() && searchTime.isNotBlank()
+    ) {
+        "Bitte Datum und Uhrzeit vollständig eingeben."
+    }
+
+    java.time.LocalDate.parse(searchDate)
+        .atTime(java.time.LocalTime.parse(searchTime))
+        .atZone(java.time.ZoneId.of("Europe/Berlin"))
+        .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                }
                 val start = fromPlace
                 val end = toPlace
 
@@ -153,7 +171,7 @@ LaunchedEffect(selectedLeg?.itineraryId, selectedLeg?.tripId) {
                     connections = TransitousClient.searchConnections(
     from = start,
     to = end,
-    dateTime = null,
+    dateTime = requestedDateTime,
     arriveBy = false,
     searchMode = searchMode
 )
@@ -306,7 +324,41 @@ Row(
                                 toSuggestions = emptyList()
                             }
                         )
+Text(
+    "DATUM UND UHRZEIT",
+    color = TextMuted,
+    fontSize = 11.sp,
+    fontWeight = FontWeight.Bold
+)
 
+Row(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.spacedBy(8.dp)
+) {
+    OutlinedTextField(
+        value = searchDate,
+        onValueChange = { searchDate = it },
+        label = { Text("Datum") },
+        placeholder = { Text("2026-11-16") },
+        modifier = Modifier.weight(1.3f),
+        singleLine = true
+    )
+
+    OutlinedTextField(
+        value = searchTime,
+        onValueChange = { searchTime = it },
+        label = { Text("Uhrzeit") },
+        placeholder = { Text("18:38") },
+        modifier = Modifier.weight(1f),
+        singleLine = true
+    )
+}
+
+Text(
+    "Leer lassen für die aktuelle Verbindungssuche.",
+    color = TextMuted,
+    fontSize = 11.sp
+)
                         Button(
                             onClick = {
                                 keyboardController?.hide()
