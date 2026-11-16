@@ -73,7 +73,13 @@ data class TransitConnection(
     val detail: String,
     val legs: List<TransitLeg> = emptyList()
 )
-
+internal fun isAdditionalStop(
+    stopId: String,
+    scheduledStopIds: Set<String>
+): Boolean {
+    return stopId.isNotBlank() &&
+        stopId !in scheduledStopIds
+}
 object TransitousClient {
 
     private const val USER_AGENT =
