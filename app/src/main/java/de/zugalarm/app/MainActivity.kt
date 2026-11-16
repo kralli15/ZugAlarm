@@ -62,33 +62,7 @@ fun ZugAlarmApp() {
     var connections by remember { mutableStateOf(emptyList<TransitConnection>()) }
     var selected by remember { mutableStateOf<TransitConnection?>(null) }
     LaunchedEffect(selectedLeg?.itineraryId, selectedLeg?.tripId) {
-    val leg = selectedLeg ?: return@LaunchedEffect
-
-    if (leg.itineraryId.isBlank() || leg.tripId.isBlank()) {
-        return@LaunchedEffect
-    }
-
-    try {
-        val scheduledIds = TransitousClient.scheduledStopIdsForLeg(
-            leg.itineraryId,
-            leg.tripId
-        )
-
-        if (scheduledIds != null) {
-            selectedLeg = leg.copy(
-                intermediateStops = leg.intermediateStops.map { stop ->
-                    stop.copy(
-                        isAdditional = stop.stopId.isNotBlank() &&
-                            stop.stopId !in scheduledIds
-                    )
-                }
-            )
-        }
-    } catch (_: Exception) {
-        // Bei fehlenden Daten keine Zusatzhalte markieren.
-    }
-    }
-    var selectedLeg by remember { mutableStateOf<TransitLeg?>(null) }
+    
     var searching by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var searchMode by remember {
