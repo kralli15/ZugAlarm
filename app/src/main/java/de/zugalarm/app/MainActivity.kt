@@ -63,12 +63,40 @@ fun ZugAlarmApp() {
         var selected by remember { mutableStateOf<TransitConnection?>(null) }
 var selectedLeg by remember { mutableStateOf<TransitLeg?>(null) }
 
+
 LaunchedEffect(selectedLeg?.itineraryId, selectedLeg?.tripId) {
     val leg = selectedLeg ?: return@LaunchedEffect
 
     if (leg.itineraryId.isBlank() || leg.tripId.isBlank()) {
         return@LaunchedEffect
     }
+
+    try {
+        val realtimeStops = TransitousClient.realtimeStopsForLeg(
+            leg.itineraryId,
+            leg.tripId
+        )
+
+        val scheduledIds = TransitousClient.scheduledStopIdsForLeg(
+            leg.itineraryId,
+            leg.tripId
+        )
+
+        val stopsToDisplay = realtimeStops ?: leg.intermediateStops
+
+        selectedLeg = leg.copy(
+            intermediateStops = stopsToDisplay.map { stop ->
+                stop.copy(
+                    isAdditional = scheduledIds?.let {
+                        isAdditionalStop(stop.stopId, it)
+                    } ?: false
+                )
+            }
+        )
+    } catch (_: Exception) {
+        // Bei fehlenden Echtzeitdaten die bisherigen Halte beibehalten.
+    }
+}
 
     try {
         val scheduledIds = TransitousClient.scheduledStopIdsForLeg(
