@@ -98,28 +98,6 @@ LaunchedEffect(selectedLeg?.itineraryId, selectedLeg?.tripId) {
     }
 }
 
-    try {
-        val scheduledIds = TransitousClient.scheduledStopIdsForLeg(
-            leg.itineraryId,
-            leg.tripId
-        )
-
-        if (scheduledIds != null) {
-            selectedLeg = leg.copy(
-                intermediateStops = leg.intermediateStops.map { stop ->
-                    stop.copy(
-                        isAdditional = isAdditionalStop(
-    stop.stopId,
-    scheduledIds
-)
-                    )
-                }
-            )
-        }
-    } catch (_: Exception) {
-        // Bei fehlenden Daten keine Zusatzhalte markieren.
-    }
-}
     
     var searching by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
