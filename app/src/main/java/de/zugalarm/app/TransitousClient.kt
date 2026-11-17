@@ -349,6 +349,65 @@ itineraryId = journey.optString("id")
 
         JSONObject(get(url.toString()))
     }
+
+    
+suspend fun realtimeStopsForLeg(
+    itineraryId: String,
+    tripId: String
+): List<TransitStop>? = withContext(Dispatchers.IO) {
+    if (itineraryId.isBlank() || tripId.isBlank()) {
+        return@withContext null
+    }
+
+    val url = HttpUrl.Builder()
+        .scheme("https")
+        .host("api.transitous.org")
+        .addPathSegments("api/v6/refresh-itinerary")
+        .addQueryParameter("itineraryId", itineraryId)
+        .addQueryParameter("realtimeMode", "REALTIME")
+        .addQueryParameter("joinInterlinedLegs", "false")
+        .addQueryParameter("withScheduledSkippedStops", "true")
+        .addQueryParameter("language", "de")
+        .build()
+
+    val itinerary = JSONObject(get(url.toString()))
+    val legs = itinerary.optJSONArray("legs")
+        ?: return@withContext null
+
+    val realtimeLeg = (0 until legs.length())
+        .mapNotNull { legs.optJSONObject(it) }
+        .firstOrNull {
+            it.optString("tripId") == tripId
+        } ?: return@withContext null
+
+    val stops = realtimeLeg.optJSONArray("intermediateStops")
+        ?: JSONArray()
+
+    val result = (0 until stops.length()).mapNotNull { index ->
+        val stop = stops.optJSONObject(index)
+            ?: return@mapNotNull null
+
+        TransitStop(
+            name = stopName(stop),
+            arrival = formatTime(stop.optString("arrival")),
+            departure = formatTime(stop.optString("departure")),
+            scheduledArrival = formatTime(
+                stop.optString("scheduledArrival")
+            ),
+            scheduledDeparture = formatTime(
+                stop.optString("scheduledDeparture")
+            ),
+            platform = platformName(stop),
+            cancelled = stop.optBoolean("cancelled", false),
+            pickupType = stop.optString("pickupType"),
+            dropoffType = stop.optString("dropoffType"),
+            stopId = stop.optString("stopId")
+        )
+    }
+
+    result.takeIf { it.isNotEmpty() }
+}
+
 suspend fun scheduledStopIdsForLeg(
     itineraryId: String,
     tripId: String
